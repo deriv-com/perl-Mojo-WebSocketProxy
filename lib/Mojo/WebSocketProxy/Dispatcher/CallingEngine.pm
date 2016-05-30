@@ -201,7 +201,7 @@ __END__
 
 =head1 NAME
 
-BOM::WebSocketAPI::CallingEngine
+Mojo::WebSocketProxy::Dispatcher::CallingEngine
 
 =head1 DESCRIPTION
 

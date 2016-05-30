@@ -54,6 +54,7 @@ sub on_message {
             $result = $c->before_forward($req_storage);
 
             # Don't forward call to RPC if any before_forward hook returns response
+            # Or if there is instead_of_forward action
             unless ($result) {
                 $result =
                       $req_storage->{instead_of_forward}
@@ -160,3 +161,70 @@ sub send_api_response {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Mojo::WebSocketProxy::Dispatcher
+
+=head1 SYNOPSYS
+    
+    # lib/your-application.pm
+ 
+    use base 'Mojolicious';
+ 
+    sub startup {
+        my $self = shift;
+        $self->plugin(
+            'web_socket_proxy' => {
+                actions => [
+                    ['json_key', {some_param => 'some_value'}]
+                ],
+                base_path => '/api',
+                url => 'http://rpc-host.com:8080/',
+            }
+        );
+   }
+
+=head1 DESCRIPTION
+
+Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
+See L<Mojolicious::Plugin::WebSocketProxy> for details on how to use hooks and parameters.
+
+=head1 METHODS
+
+=head2 open_connection
+
+Run while openning new wss connection.
+Run hook when connection is opened.
+Set finish connection callback.
+
+=head2 on_message
+
+Handle message - parse and dispatch request messages.
+Dispatching action and forward to RPC server.
+
+=head2 before_forward
+
+Run hooks.
+
+=head2 after_forward
+
+Run hooks.
+
+=head2 dispatch
+
+Dispatch request using message json key.
+
+=head2 forward
+
+Forward call to RPC server using global and action hooks.
+Don't forward call to RPC if any before_forward hook returns response.
+Or if there is instead_of_forward action.
+
+=head2 send_api_response
+
+Send asynchronous response to client websocket, doing hooks.
+
+=cut
