@@ -89,4 +89,11 @@ Mojo::WebSocketProxy::Dispatcher::Parser
 
 This module using for parse JSON websocket messages.
 
+=head1 SEE ALSO
+ 
+L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Dispatcher::Parser>
+
 =cut

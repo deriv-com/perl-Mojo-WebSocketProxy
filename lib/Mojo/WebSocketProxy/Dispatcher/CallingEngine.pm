@@ -247,4 +247,11 @@ Make wsapi proxy server response from RPC response.
 
 Make RPC call.
 
+=head1 SEE ALSO
+ 
+L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Dispatcher::Parser>
+
 =cut

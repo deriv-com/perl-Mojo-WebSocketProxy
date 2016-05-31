@@ -227,4 +227,11 @@ Or if there is instead_of_forward action.
 
 Send asynchronous response to client websocket, doing hooks.
 
+=head1 SEE ALSO
+ 
+L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Dispatcher::Parser>
+
 =cut
