@@ -78,3 +78,15 @@ sub _failed_key_value {
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Mojo::WebSocketProxy::Dispatcher::Parser
+
+=head1 DESCRIPTION
+
+This module using for parse JSON websocket messages.
+
+=cut

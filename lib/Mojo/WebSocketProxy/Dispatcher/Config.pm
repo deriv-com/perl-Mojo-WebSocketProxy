@@ -32,13 +32,19 @@ sub add_action {
     $actions->{$name}->{order} = $order;
     $actions->{$name}->{name}  = $name;
 
-    my $f             = '/home/git/regentmarkets/bom-websocket-api/config/v3/' . $name;
-    my $in_validator  = JSON::Schema->new(JSON::from_json(File::Slurp::read_file("$f/send.json")), format => \%JSON::Schema::FORMATS);
-    my $out_validator = JSON::Schema->new(JSON::from_json(File::Slurp::read_file("$f/receive.json")), format => \%JSON::Schema::FORMATS);
-
-    $actions->{$name}->{in_validator}  = $in_validator;
-    $actions->{$name}->{out_validator} = $out_validator;
     return;
 }
 
 1;
+
+__END__
+
+=head1 NAME
+
+Mojo::WebSocketProxy::Dispatcher::Parser
+
+=head1 DESCRIPTION
+
+This module using for store server configuration in memory.
+
+=cut
