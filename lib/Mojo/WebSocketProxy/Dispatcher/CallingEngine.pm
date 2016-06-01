@@ -151,7 +151,10 @@ sub call_rpc {
             # unconditionally stop any further processing if client is already disconnected
             return unless $c->tx;
 
-            my $client_guard = guard { undef $client };
+            my $mem_guard = guard { 
+                undef $client;
+                undef $req_storage;
+            };
 
             my $api_response;
             if (!$res) {
