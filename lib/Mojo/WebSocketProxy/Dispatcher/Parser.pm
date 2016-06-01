@@ -11,7 +11,7 @@ sub parse_req {
     if (ref $args ne 'HASH') {
         # for invalid call, eg: not json
         $req_storage->{args} = {};
-        $result = $c->new_error('error', 'BadRequest', $c->l('The application sent an invalid request.'));
+        $result = $c->wsp_error('error', 'BadRequest', 'The application sent an invalid request.');
     }
 
     $result = _check_sanity($c, $req_storage) unless $result;
@@ -45,7 +45,7 @@ sub _check_sanity {
 
     if (@failed) {
         $c->app->log->warn("Sanity check failed: " . $failed[0] . " -> " . ($failed[1] // "undefined"));
-        my $result = $c->new_error('sanity_check', 'SanityCheckFailed', $c->l("Parameters sanity check failed."));
+        my $result = $c->wsp_error('sanity_check', 'SanityCheckFailed', 'Parameters sanity check failed.');
         if (    $result->{error}
             and $result->{error}->{code} eq 'SanityCheckFailed')
         {

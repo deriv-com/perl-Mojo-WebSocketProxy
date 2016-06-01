@@ -18,9 +18,6 @@ sub make_call_params {
 
     my $call_params = $req_storage->{call_params};
     $call_params->{args}     = $args;
-    $call_params->{language} = $c->stash('language');
-    $call_params->{country}  = $c->stash('country') || $c->country_code;
-    $call_params->{source}   = $c->stash('source');
 
     if (defined $stash_params) {
         $call_params->{$_} = $c->stash($_) for @$stash_params;
@@ -105,7 +102,7 @@ sub error_api_response {
 
     my $msg_type             = $req_storage->{msg_type};
     my $rpc_response_handler = $req_storage->{response};
-    my $api_response         = $c->new_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client});
+    my $api_response         = $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client});
 
     # TODO Should be removed after RPC's answers will be standardized
     my $custom_response;
@@ -158,7 +155,7 @@ sub call_rpc {
 
             my $api_response;
             if (!$res) {
-                $api_response = $c->new_error($msg_type, 'WrongResponse', $c->l('Sorry, an error occurred while processing your request.'));
+                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 send_api_response($c, $req_storage, $api_response);
                 return;
             }
@@ -167,7 +164,7 @@ sub call_rpc {
 
             if ($res->is_error) {
                 warn $res->error_message;
-                $api_response = $c->new_error($msg_type, 'CallError', $c->l('Sorry, an error occurred while processing your request.'));
+                $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                 send_api_response($c, $req_storage, $api_response);
                 return;
             }
@@ -177,7 +174,7 @@ sub call_rpc {
             return unless $api_response;
 
             if (length(JSON::to_json($api_response)) > ($max_response_size || 328000)) {
-                $api_response = $c->new_error('error', 'ResponseTooLarge', $c->l('Response too large.'));
+                $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
             }
 
             send_api_response($c, $req_storage, $api_response);
