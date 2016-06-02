@@ -33,7 +33,7 @@ sub startup {
                 }
             ],
             ['some_action6', {stash_params => [qw/ stashed_data /]}],
-            ['some_action7', {response => \&main::some_action7}],
+            ['some_action7', {response     => \&main::some_action7}],
         ],
         before_forward           => \&main::before_forward,
         before_send_api_response => \&main::add_debug,
@@ -195,7 +195,10 @@ is $call_params->{params}->{stashed_data}, 1, 'You can send data from Mojoliciou
 
 sub some_action7 {
     my ($rpc_response, $api_response, $req_storage) = @_;
-    return {my_response => $rpc_response, some_other_data => 1};
+    return {
+        my_response     => $rpc_response,
+        some_other_data => 1
+    };
 }
 
 $rpc_response = {status => 1};
