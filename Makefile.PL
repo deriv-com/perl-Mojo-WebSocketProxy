@@ -20,6 +20,7 @@ WriteMakefile(
     PREREQ_PM => {
         'Test::Simple' => 0.44,
         'Mojolicious'  => 0,
+        'Time::Out'    => 0,
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 6.64,
