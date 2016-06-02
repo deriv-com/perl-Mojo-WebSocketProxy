@@ -3,6 +3,8 @@ package Mojo::WebSocketProxy::Dispatcher::Parser;
 use strict;
 use warnings;
 
+use Mojo::WebSocketProxy::Dispatcher::Config;
+
 sub parse_req {
     my ($c, $req_storage) = @_;
 
@@ -59,7 +61,8 @@ sub _check_sanity {
 sub _failed_key_value {
     my ($key, $value) = @_;
 
-    if ($key =~ /password/) {    # TODO review carefully
+    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    if ($config->{skip_check_sanity} && ref($config->{skip_check_sanity}) eq 'Regexp' && $key =~ /$config->{skip_check_sanity}/) {
         return;
     } elsif (
         $key !~ /^[A-Za-z0-9_-]{1,50}$/
