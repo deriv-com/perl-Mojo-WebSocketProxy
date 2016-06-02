@@ -95,6 +95,8 @@ Plugin returns common response like this:
         msg_type  => $msg_type,
     }
 
+You can customize ws porxy response using 'response' hook.
+
 =head1 Plugin parameters
 
 The plugin understands the following parameters.

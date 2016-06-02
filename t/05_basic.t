@@ -33,6 +33,7 @@ sub startup {
                 }
             ],
             ['some_action6', {stash_params => [qw/ stashed_data /]}],
+            ['some_action7', {response => \&main::some_action7}],
         ],
         before_forward           => \&main::before_forward,
         before_send_api_response => \&main::add_debug,
@@ -192,9 +193,15 @@ $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 is $call_params->{params}->{stashed_data}, 1, 'You can send data from Mojolicious stash to RPC service';
 
+sub some_action7 {
+    my ($rpc_response, $api_response, $req_storage) = @_;
+    return {my_response => $rpc_response, some_other_data => 1};
+}
+
 $rpc_response = {status => 1};
-$t = $t->send_ok({json => {some_action => 1}})->message_ok;
+$t = $t->send_ok({json => {some_action7 => 1}})->message_ok;
 $res = decode_json($t->message->[1]);
-is $res->{some_action}, 1, 'It should return simple answer';
+is $res->{my_response}->{status}, 1, 'It should return custom answer';
+is $res->{my_response}->{status}, 1, 'It should return custom answer';
 
 done_testing();
