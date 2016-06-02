@@ -65,14 +65,39 @@ Or to manually call RPC server:
 
 Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
 
-For every message it creates separate hash ref storage, which is available from
-hooks as $req_storage.
-Requset storage have RPC call parameters in $req_storage->{call_params}.
-It copy message args to $req_storage->{call_params}->{args}.
+For every message it creates separate hash ref storage, which is available from hooks as $req_storage.
+Request storage have RPC call parameters in $req_storage->{call_params}.
+It copies message args to $req_storage->{call_params}->{args}.
+You can use Mojolicious stash to store data between messages in one connection.
 
-The plugin understands the following parameters.
+=head1 Proxy responses
+
+The plugin sends websocket messages to clietn with RPC response data.
+If RPC reponse looks like this:
+    
+    {status => 1}
+    
+It returns simple response like this:
+    
+    {$msg_type => 1, msg_type => $msg_type}
+
+If RPC returns something like this:
+    
+    {
+        response_data => [..],
+        status        => 1,
+    }
+    
+Plugin returns common response like this:
+    
+    {
+        $msg_type => $rpc_response,
+        msg_type  => $msg_type,
+    }
 
 =head1 Plugin parameters
+
+The plugin understands the following parameters.
 
 =head2 actions
 

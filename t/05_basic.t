@@ -192,4 +192,9 @@ $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 is $call_params->{params}->{stashed_data}, 1, 'You can send data from Mojolicious stash to RPC service';
 
+$rpc_response = {status => 1};
+$t = $t->send_ok({json => {some_action => 1}})->message_ok;
+$res = decode_json($t->message->[1]);
+is $res->{some_action}, 1, 'It should return simple answer';
+
 done_testing();
