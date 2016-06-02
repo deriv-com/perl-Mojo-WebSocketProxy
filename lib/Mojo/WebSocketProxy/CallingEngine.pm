@@ -79,13 +79,10 @@ sub success_api_response {
         $msg_type => $rpc_response,
     };
 
-    # If RPC returned only status then wsapi will return no object
-    # TODO Should be removed after RPC's answers will be standardized
     if (ref($rpc_response) eq 'HASH' and keys %$rpc_response == 1 and exists $rpc_response->{status}) {
         $api_response->{$msg_type} = $rpc_response->{status};
     }
 
-    # TODO Should be removed after RPC's answers will be standardized
     my $custom_response;
     if ($rpc_response_handler) {
         return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
@@ -101,7 +98,6 @@ sub error_api_response {
     my $rpc_response_handler = $req_storage->{response};
     my $api_response         = $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client});
 
-    # TODO Should be removed after RPC's answers will be standardized
     my $custom_response;
     if ($rpc_response_handler) {
         return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
