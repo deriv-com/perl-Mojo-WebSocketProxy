@@ -22,9 +22,6 @@ sub make_call_params {
     if (defined $stash_params) {
         $call_params->{$_} = $c->stash($_) for @$stash_params;
     }
-    if ($require_auth && $c->stash('token')) {
-        $call_params->{token} = $c->stash('token');
-    }
     if (defined $call_params_cb) {
         my $cb_params = $call_params_cb->($c, $args);
         $call_params->{$_} = $cb_params->{$_} for keys %$cb_params;

@@ -50,6 +50,6 @@ You can look for information at:
         http://search.cpan.org/dist/Mojo-WebSocketProxy/
 
 
-i####COPYRIGHT
+####COPYRIGHT
 
 Copyright (C) 2016 binary.com

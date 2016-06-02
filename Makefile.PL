@@ -36,6 +36,6 @@ WriteMakefile(
             repository => 'git://github.com/binary-com/perl-Mojo-WebSocketProxy',
             license    => 'http://dev.perl.org/licenses/',
         },
-        x_contributors => ['Evgeniy Vostrov <vostrov.e@gmail.com>',],
+        x_contributors => ['Evgeniy Vostrov <vostrov.e@gmail.com>'],
     },
 );
