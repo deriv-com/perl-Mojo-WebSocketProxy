@@ -1,0 +1,12 @@
+MANIFEST
+README.md
+LICENSE
+Changes
+Makefile.PL
+lib/Mojolicious/Plugin/WebSocketProxy.pm
+lib/Mojo/WebSocketProxy.pm
+lib/Mojo/WebSocketProxy/Dispatcher.pm
+lib/Mojo/WebSocketProxy/Dispatcher/Config.pm
+lib/Mojo/WebSocketProxy/Dispatcher/Parser.pm
+lib/Mojo/WebSocketProxy/Dispatcher/CallingEngine.pm
+t/05_basic.t
