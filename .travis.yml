@@ -20,6 +20,7 @@ before_install:
     - "cpanm -n Test::Mojo"
     - "cpanm -n Test::MockModule"
     - "cpanm -n Test::MockObject"
+    - "cpanm -n Time::Out"
     - "cpanm -n --installdeps ."
 script:
     perl Makefile.PL && make test
