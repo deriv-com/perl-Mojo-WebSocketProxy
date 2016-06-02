@@ -3,7 +3,7 @@ package Mojo::WebSocketProxy::Dispatcher;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::WebSocketProxy::Dispatcher::Parser;
 use Mojo::WebSocketProxy::Dispatcher::Config;
-use Mojo::WebSocketProxy::Dispatcher::CallingEngine;
+use Mojo::WebSocketProxy::CallingEngine;
 
 use Time::Out qw(timeout);
 
@@ -145,7 +145,7 @@ sub forward {
         ];
     }
 
-    Mojo::WebSocketProxy::Dispatcher::CallingEngine::call_rpc($c, $req_storage);
+    Mojo::WebSocketProxy::CallingEngine::call_rpc($c, $req_storage);
     return;
 }
 
@@ -156,7 +156,7 @@ sub send_api_response {
     for my $hook (qw/ before_send_api_response after_sent_api_response /) {
         $req_storage->{$hook} ||= [grep { $_ } (ref $config->{$hook} eq 'ARRAY' ? @{$config->{$hook}} : $config->{$hook})];
     }
-    Mojo::WebSocketProxy::Dispatcher::CallingEngine::send_api_response($c, $req_storage, $result);
+    Mojo::WebSocketProxy::CallingEngine::send_api_response($c, $req_storage, $result);
     return;
 }
 
@@ -212,7 +212,8 @@ Send asynchronous response to client websocket, doing hooks.
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
 L<Mojo::WebSocketProxy>,
-L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 

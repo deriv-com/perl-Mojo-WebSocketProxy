@@ -1,4 +1,4 @@
-package Mojo::WebSocketProxy::Dispatcher::CallingEngine;
+package Mojo::WebSocketProxy::CallingEngine;
 
 use strict;
 use warnings;
@@ -152,6 +152,7 @@ sub call_rpc {
 
             my $api_response;
             if (!$res) {
+                warn "WrongResponse [$msg_type]";
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 send_api_response($c, $req_storage, $api_response);
                 return;
@@ -198,7 +199,7 @@ __END__
 
 =head1 NAME
 
-Mojo::WebSocketProxy::Dispatcher::CallingEngine
+Mojo::WebSocketProxy::CallingEngine
 
 =head1 DESCRIPTION
 
@@ -248,7 +249,8 @@ Make RPC call.
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
 L<Mojo::WebSocketProxy>,
-L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 

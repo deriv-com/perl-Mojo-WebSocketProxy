@@ -217,7 +217,8 @@ Same as L<Mojolicious::Plugin::WebSocketProxy/"after_sent_api_response (global)"
 =head1 SEE ALSO
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
-L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
+L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
