@@ -168,29 +168,10 @@ __END__
 
 Mojo::WebSocketProxy::Dispatcher
 
-=head1 SYNOPSYS
-    
-    # lib/your-application.pm
- 
-    use base 'Mojolicious';
- 
-    sub startup {
-        my $self = shift;
-        $self->plugin(
-            'web_socket_proxy' => {
-                actions => [
-                    ['json_key', {some_param => 'some_value'}]
-                ],
-                base_path => '/api',
-                url => 'http://rpc-host.com:8080/',
-            }
-        );
-   }
-
 =head1 DESCRIPTION
 
 Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
-See L<Mojolicious::Plugin::WebSocketProxy> for details on how to use hooks and parameters.
+See L<Mojo::WebSocketProxy> for details on how to use hooks and parameters.
 
 =head1 METHODS
 
@@ -230,6 +211,7 @@ Send asynchronous response to client websocket, doing hooks.
 =head1 SEE ALSO
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>

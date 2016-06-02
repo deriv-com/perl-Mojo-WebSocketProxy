@@ -50,6 +50,7 @@ This module using for store server configuration in memory.
 =head1 SEE ALSO
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::Dispatcher::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
