@@ -9,7 +9,7 @@ use Time::Out qw(timeout);
 
 sub ok {
     my $c      = shift;
-    my $source = 1;                           # check http origin here
+    my $source = 1;       # check http origin here
     $c->stash(source => $source);
     return 1;
 }

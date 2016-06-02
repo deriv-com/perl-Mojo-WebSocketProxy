@@ -17,7 +17,7 @@ sub make_call_params {
     my $call_params_cb = delete $req_storage->{make_call_params};
 
     my $call_params = $req_storage->{call_params};
-    $call_params->{args}     = $args;
+    $call_params->{args} = $args;
 
     if (defined $stash_params) {
         $call_params->{$_} = $c->stash($_) for @$stash_params;
@@ -148,7 +148,7 @@ sub call_rpc {
             # unconditionally stop any further processing if client is already disconnected
             return unless $c->tx;
 
-            my $mem_guard = guard { 
+            my $mem_guard = guard {
                 undef $client;
                 undef $req_storage;
             };
