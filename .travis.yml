@@ -22,4 +22,4 @@ before_install:
     - "cpanm -n Test::MockObject"
     - "cpanm -n --installdeps ."
 script:
-    prove -lr t
+    perl Makefile.PL && make test
