@@ -1,7 +1,7 @@
 # perl-Mojo-WebSocketProxy
 [![Build Status](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy.svg?branch=master)](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy) 
 
-#### INSTALLATION
+# INSTALLATION
 
 To install this module, run the following commands:
 
@@ -10,7 +10,7 @@ To install this module, run the following commands:
 	make test
 	make install
 
-#### SUPPORT AND DOCUMENTATION
+# SUPPORT AND DOCUMENTATION
 
 You can look for information at:
 
@@ -26,9 +26,6 @@ You can look for information at:
     Search CPAN
         http://search.cpan.org/dist/Mojo-WebSocketProxy/
 
-# NAME
-
-Mojo::WebSocketProxy::Dispatcher
 
 # SYNOPSYS
 
