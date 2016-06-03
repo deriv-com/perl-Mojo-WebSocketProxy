@@ -3,8 +3,6 @@ package Mojolicious::Plugin::WebSocketProxy;
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
-our $VERSION = "0.06";
-$VERSION = eval $VERSION;
 
 sub register {
     my ($self, $app, $config) = @_;
