@@ -116,7 +116,7 @@ sub call_rpc {
     my $call_params = $req_storage->{call_params} ||= {};
 
     my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
-    my $max_response_size = $req_storage->{max_response_size};
+    my $max_response_size = Mojo::WebSocketProxy::Config->new->{config}->{max_response_size};
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
@@ -167,7 +167,7 @@ sub call_rpc {
 
             return unless $api_response;
 
-            if (length(JSON::to_json($api_response)) > ($max_response_size || 328000)) {
+            if ($max_response_size && length(JSON::to_json($api_response)) > $max_response_size) {
                 $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
             }
 
@@ -247,7 +247,7 @@ L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =cut

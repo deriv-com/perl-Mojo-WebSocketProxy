@@ -2,7 +2,7 @@ package Mojo::WebSocketProxy::Dispatcher;
 
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::WebSocketProxy::Dispatcher::Parser;
-use Mojo::WebSocketProxy::Dispatcher::Config;
+use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::CallingEngine;
 
 use Time::Out qw(timeout);
@@ -23,7 +23,7 @@ sub open_connection {
     # Enable permessage-deflate
     $c->tx->with_compression;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
 
     Mojo::IOLoop->singleton->stream($c->tx->connection)->timeout($config->{stream_timeout}) if $config->{stream_timeout};
     Mojo::IOLoop->singleton->max_connections($config->{max_connections}) if $config->{max_connections};
@@ -39,7 +39,7 @@ sub open_connection {
 sub on_message {
     my ($c, $args) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
 
     my $result;
     my $req_storage = {};
@@ -82,7 +82,7 @@ sub on_message {
 sub before_forward {
     my ($c, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
 
     # Should first call global hooks
     my $before_forward_hooks = [
@@ -96,7 +96,7 @@ sub before_forward {
 sub after_forward {
     my ($c, $result, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
     return $c->_run_hooks($config->{after_forward} || [], $result, $req_storage);
 }
 
@@ -125,7 +125,7 @@ sub dispatch {
     my ($action) =
         sort { $a->{order} <=> $b->{order} }
         grep { defined }
-        map  { Mojo::WebSocketProxy::Dispatcher::Config->new->{actions}->{$_} } keys %$args;
+        map  { Mojo::WebSocketProxy::Config->new->{actions}->{$_} } keys %$args;
 
     return $action;
 }
@@ -133,7 +133,7 @@ sub dispatch {
 sub forward {
     my ($c, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
 
     $req_storage->{url} ||= $config->{url};
     die 'No url found' unless $req_storage->{url};
@@ -152,7 +152,7 @@ sub forward {
 sub send_api_response {
     my ($c, $req_storage, $result) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
     for my $hook (qw/ before_send_api_response after_sent_api_response /) {
         $req_storage->{$hook} ||= [grep { $_ } (ref $config->{$hook} eq 'ARRAY' ? @{$config->{$hook}} : $config->{$hook})];
     }
@@ -214,7 +214,7 @@ L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =cut

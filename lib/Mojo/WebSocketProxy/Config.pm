@@ -1,4 +1,4 @@
-package Mojo::WebSocketProxy::Dispatcher::Config;
+package Mojo::WebSocketProxy::Config;
 
 use Mojo::Base -base;
 
@@ -53,7 +53,7 @@ L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =cut

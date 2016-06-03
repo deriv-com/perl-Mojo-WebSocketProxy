@@ -1,7 +1,7 @@
 package Mojolicious::Plugin::WebSocketProxy;
 
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::WebSocketProxy::Dispatcher::Config;
+use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 our $VERSION = "0.06";
 $VERSION = eval $VERSION;
@@ -43,7 +43,7 @@ sub register {
     }
 
     my $actions           = delete $config->{actions};
-    my $dispatcher_config = Mojo::WebSocketProxy::Dispatcher::Config->new;
+    my $dispatcher_config = Mojo::WebSocketProxy::Config->new;
     $dispatcher_config->init($config);
 
     if (ref $actions eq 'ARRAY') {
@@ -272,7 +272,7 @@ Same as L<Mojolicious::Plugin::WebSocketProxy/"after_sent_api_response (global)"
 L<Mojolicious::Plugin::WebSocketProxy>, 
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =cut

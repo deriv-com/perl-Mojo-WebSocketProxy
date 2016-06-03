@@ -182,6 +182,10 @@ See ["timeout" in Mojo::IOLoop::Stream](https://metacpan.org/pod/Mojo::IOLoop::S
 
 See ["max\_connections" in Mojo::IOLoop](https://metacpan.org/pod/Mojo::IOLoop####max_connections)
 
+##### max\_response\_size
+
+Returns error if RPC response size is over value.
+
 ##### opened\_connection
 
 Callback for doing something once after connection is opened
@@ -255,7 +259,7 @@ Same as ["after\_sent\_api\_response (global)" in Mojolicious::Plugin::WebSocket
 [Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy), 
 [Mojo::WebSocketProxy::CallingEngine](https://metacpan.org/pod/Mojo::WebSocketProxy::CallingEngine),
 [Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher),
-[Mojo::WebSocketProxy::Dispatcher::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Config)
+[Mojo::WebSocketProxy::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Config)
 [Mojo::WebSocketProxy::Dispatcher::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Parser)
 
 #### COPYRIGHT AND LICENSE

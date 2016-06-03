@@ -176,6 +176,10 @@ See L<Mojo::IOLoop::Stream/"timeout">
 
 See L<Mojo::IOLoop/"max_connections">
 
+=head2 max_response_size
+
+Returns error if RPC response size is over value.
+
 =head2 opened_connection
 
 Callback for doing something once after connection is opened
@@ -246,7 +250,7 @@ Same as L<Mojolicious::Plugin::WebSocketProxy/"after_sent_api_response (global)"
 L<Mojolicious::Plugin::WebSocketProxy>, 
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =head1 COPYRIGHT AND LICENSE

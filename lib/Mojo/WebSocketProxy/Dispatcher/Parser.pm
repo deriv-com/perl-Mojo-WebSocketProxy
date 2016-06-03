@@ -3,7 +3,7 @@ package Mojo::WebSocketProxy::Dispatcher::Parser;
 use strict;
 use warnings;
 
-use Mojo::WebSocketProxy::Dispatcher::Config;
+use Mojo::WebSocketProxy::Config;
 
 sub parse_req {
     my ($c, $req_storage) = @_;
@@ -61,7 +61,7 @@ sub _check_sanity {
 sub _failed_key_value {
     my ($key, $value) = @_;
 
-    my $config = Mojo::WebSocketProxy::Dispatcher::Config->new->{config};
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
     if ($config->{skip_check_sanity} && ref($config->{skip_check_sanity}) eq 'Regexp' && $key =~ /$config->{skip_check_sanity}/) {
         return;
     } elsif (
@@ -98,7 +98,7 @@ L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Dispatcher::Config>
+L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
 
 =cut
