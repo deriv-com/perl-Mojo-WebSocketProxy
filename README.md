@@ -10,22 +10,9 @@ To install this module, run the following commands:
 	make test
 	make install
 
-#### SUPPORT AND DOCUMENTATION
+#### NAME
 
-You can look for information at:
-
-    RT, CPAN's request tracker (report bugs here)
-        http://rt.cpan.org/NoAuth/Bugs.html?Dist=Mojo-WebSocketProxy
-
-    AnnoCPAN, Annotated CPAN documentation
-        http://annocpan.org/dist/Mojo-WebSocketProxy
-
-    CPAN Ratings
-        http://cpanratings.perl.org/d/Mojo-WebSocketProxy
-
-    Search CPAN
-        http://search.cpan.org/dist/Mojo-WebSocketProxy/
-
+Mojo::WebSocketProxy - proxy WebSocket-JSON requests to RPC server
 
 #### SYNOPSYS
 
@@ -78,7 +65,7 @@ Or to manually call RPC server:
 
 #### DESCRIPTION
 
-Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
+Using this module you can forward WebSocket-JSON requests to RPC server.
 
 For every message it creates separate hash ref storage, which is available from hooks as $req\_storage.
 Request storage have RPC call parameters in $req\_storage->{call\_params}.
@@ -271,6 +258,6 @@ Same as ["after\_sent\_api\_response (global)" in Mojolicious::Plugin::WebSocket
 [Mojo::WebSocketProxy::Dispatcher::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Config)
 [Mojo::WebSocketProxy::Dispatcher::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Parser)
 
-#### COPYRIGHT
+#### COPYRIGHT AND LICENSE
 
 Copyright (C) 2016 binary.com

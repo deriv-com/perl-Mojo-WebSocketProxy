@@ -10,7 +10,7 @@ __END__
 
 =head1 NAME
 
-Mojo::WebSocketProxy::Dispatcher
+Mojo::WebSocketProxy - proxy WebSocket-JSON requests to RPC server
 
 =head1 SYNOPSYS
     
@@ -63,7 +63,7 @@ Or to manually call RPC server:
 
 =head1 DESCRIPTION
 
-Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
+Using this module you can forward WebSocket-JSON requests to RPC server.
 
 For every message it creates separate hash ref storage, which is available from hooks as $req_storage.
 Request storage have RPC call parameters in $req_storage->{call_params}.
@@ -248,5 +248,9 @@ L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Dispatcher::Config>
 L<Mojo::WebSocketProxy::Dispatcher::Parser>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2016 binary.com
 
 =cut
