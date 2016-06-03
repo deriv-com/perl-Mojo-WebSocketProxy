@@ -12,7 +12,6 @@ WriteMakefile(
     MIN_PERL_VERSION => 5.010,
     BUILD_REQUIRES   => {
         'Test::More'       => 0,
-        'Test::Mojo'       => 0,
         'Test::MockModule' => 0,
         'Test::MockObject' => 0,
         'JSON'             => 0,
