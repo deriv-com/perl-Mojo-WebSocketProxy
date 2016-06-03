@@ -272,6 +272,6 @@ Same as ["after\_sent\_api\_response (global)" in Mojolicious::Plugin::WebSocket
 [Mojo::WebSocketProxy::Dispatcher::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Parser)
 
 
-####COPYRIGHT
+# COPYRIGHT
 
 Copyright (C) 2016 binary.com
