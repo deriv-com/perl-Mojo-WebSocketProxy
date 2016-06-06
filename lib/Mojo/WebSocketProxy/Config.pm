@@ -19,6 +19,10 @@ sub init {
 
     $config  = {};
     $actions = {};
+    
+    die 'Wrong parameter' if $in_config->{opened_connection} && ref($in_config->{opened_connection}) ne 'CODE';
+    die 'Wrong parameter' if $in_config->{finish_connection} && ref($in_config->{finish_connection}) ne 'CODE';
+    
     %$config = %$in_config;
     return;
 }
