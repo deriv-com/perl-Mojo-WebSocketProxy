@@ -1,5 +1,8 @@
 package Mojolicious::Plugin::WebSocketProxy;
 
+use strict;
+use warnings;
+
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;

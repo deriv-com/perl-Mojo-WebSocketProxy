@@ -1,5 +1,8 @@
 package Mojo::WebSocketProxy::Config;
 
+use strict;
+use warnings;
+
 use Mojo::Base -base;
 
 my $actions;
