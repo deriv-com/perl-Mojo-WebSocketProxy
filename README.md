@@ -9,7 +9,7 @@ To install this module, run the following commands:
 	make
 	make test
 	make install
-
+	
 #### NAME
 
 Mojo::WebSocketProxy - proxy WebSocket-JSON requests to RPC server
@@ -227,7 +227,7 @@ Hook which will run if RPC returns success value.
     error => sub { my ($c, $rpc_response) = @_; ... }
     
 
-Hook which will run if RPC returns value with error key, i.e.
+Hook which will run if RPC returns value with error key, e.g. 
 { result => { error => { code => 'some\_error' } } }
 
 ##### response
@@ -238,25 +238,10 @@ Hook which will run if RPC returns value with error key, i.e.
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
 
-##### before\_get\_rpc\_response
-
-Same as ["before\_get\_rpc\_response (global)" in Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy####before_get_rpc_response-global) except for using for particular action
-
-##### after\_got\_rpc\_response
-
-Same as ["after\_got\_rpc\_response (global)" in Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy####after_got_rpc_response-global) except for using for particular action
-
-##### before\_send\_api\_response
-
-Same as ["before\_send\_api\_response (global)" in Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy####before_send_api_response-global) except for using for particular action
-
-##### after\_sent\_api\_response
-
-Same as ["after\_sent\_api\_response (global)" in Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy####after_sent_api_response-global) except for using for particular action
-
 #### SEE ALSO
 
 [Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy), 
+[Mojo::WebSocketProxy](https://metacpan.org/pod/Mojo::WebSocketProxy)
 [Mojo::WebSocketProxy::CallingEngine](https://metacpan.org/pod/Mojo::WebSocketProxy::CallingEngine),
 [Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher),
 [Mojo::WebSocketProxy::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Config)
