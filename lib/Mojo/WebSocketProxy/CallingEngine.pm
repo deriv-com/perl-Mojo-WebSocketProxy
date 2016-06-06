@@ -149,7 +149,7 @@ sub call_rpc {
             if (!$res) {
                 warn "WrongResponse [$msg_type]";
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-                send_api_response($c, $req_storage, $api_response);
+                $c->send($api_response, $req_storage);
                 return;
             }
 
@@ -158,7 +158,7 @@ sub call_rpc {
             if ($res->is_error) {
                 warn $res->error_message;
                 $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
-                send_api_response($c, $req_storage, $api_response);
+                $c->send($api_response, $req_storage);
                 return;
             }
 
@@ -170,21 +170,9 @@ sub call_rpc {
                 $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
             }
 
-            send_api_response($c, $req_storage, $api_response);
+            $c->send($api_response, $req_storage);
             return;
         });
-    return;
-}
-
-sub send_api_response {
-    my ($c, $req_storage, $api_response) = @_;
-
-    my $before_send_api_response_hook = delete($req_storage->{before_send_api_response}) || [];
-    my $after_sent_api_response_hook  = delete($req_storage->{after_sent_api_response})  || [];
-
-    $_->($c, $req_storage, $api_response) for @$before_send_api_response_hook;
-    $c->send({json => $api_response});
-    $_->($c, $req_storage) for @$after_sent_api_response_hook;
     return;
 }
 

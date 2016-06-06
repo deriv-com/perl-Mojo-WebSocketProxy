@@ -5,7 +5,25 @@ use Mojo::WebSocketProxy::Dispatcher::Parser;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::CallingEngine;
 
+use Class::Method::Modifiers;
 use Time::Out qw(timeout);
+
+around 'send' => sub {
+    my ($orig, $c, $response, $req_storage) = @_;
+
+    my $config = Mojo::WebSocketProxy::Config->new->{config};
+
+    my $before_send_api_response = $config->{before_send_api_response};
+    $_->($c, $req_storage, $response)
+        for grep { $_ } (ref $before_send_api_response eq 'ARRAY' ? @{$before_send_api_response} : $before_send_api_response);
+
+    my $ret = $orig->($c, {json => $response});
+
+    my $after_sent_api_response = $config->{after_sent_api_response};
+    $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
+
+    return $ret;
+};
 
 sub ok {
     my $c      = shift;
@@ -72,7 +90,7 @@ sub on_message {
         $c->app->log->info("$$ timeout for " . JSON::to_json($args));
     }
 
-    $c->send_api_response($req_storage, $result) if $result;
+    $c->send($result, $req_storage) if $result;
 
     $c->_run_hooks($config->{after_dispatch} || []);
 
@@ -138,7 +156,7 @@ sub forward {
     $req_storage->{url} ||= $config->{url};
     die 'No url found' unless $req_storage->{url};
 
-    for my $hook (qw/ before_call before_get_rpc_response after_got_rpc_response before_send_api_response after_sent_api_response /) {
+    for my $hook (qw/ before_call before_get_rpc_response after_got_rpc_response /) {
         $req_storage->{$hook} = [
             grep { $_ } (ref $config->{$hook} eq 'ARRAY'      ? @{$config->{$hook}}      : $config->{$hook}),
             grep { $_ } (ref $req_storage->{$hook} eq 'ARRAY' ? @{$req_storage->{$hook}} : $req_storage->{$hook}),
@@ -146,17 +164,6 @@ sub forward {
     }
 
     Mojo::WebSocketProxy::CallingEngine::call_rpc($c, $req_storage);
-    return;
-}
-
-sub send_api_response {
-    my ($c, $req_storage, $result) = @_;
-
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
-    for my $hook (qw/ before_send_api_response after_sent_api_response /) {
-        $req_storage->{$hook} ||= [grep { $_ } (ref $config->{$hook} eq 'ARRAY' ? @{$config->{$hook}} : $config->{$hook})];
-    }
-    Mojo::WebSocketProxy::CallingEngine::send_api_response($c, $req_storage, $result);
     return;
 }
 
@@ -203,10 +210,6 @@ Dispatch request using message json key.
 Forward call to RPC server using global and action hooks.
 Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
-
-=head2 send_api_response
-
-Send asynchronous response to client websocket, doing hooks.
 
 =head1 SEE ALSO
  

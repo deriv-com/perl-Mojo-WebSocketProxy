@@ -7,7 +7,7 @@ use Mojo::WebSocketProxy::Dispatcher;
 sub register {
     my ($self, $app, $config) = @_;
 
-    die 'No actions found!' unless $config->{base_path};
+    die 'No base path found!' unless $config->{base_path};
 
     my $url_setter;
     $url_setter = delete $config->{url} if $config->{url} and ref($config->{url}) eq 'CODE';
