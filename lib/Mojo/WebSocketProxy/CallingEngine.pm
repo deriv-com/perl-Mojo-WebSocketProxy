@@ -149,7 +149,7 @@ sub call_rpc {
             if (!$res) {
                 warn "WrongResponse [$msg_type]";
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-                $c->send($api_response, $req_storage);
+                $c->send({json => $api_response}, $req_storage);
                 return;
             }
 
@@ -158,7 +158,7 @@ sub call_rpc {
             if ($res->is_error) {
                 warn $res->error_message;
                 $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
-                $c->send($api_response, $req_storage);
+                $c->send({json => $api_response}, $req_storage);
                 return;
             }
 
@@ -170,7 +170,7 @@ sub call_rpc {
                 $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
             }
 
-            $c->send($api_response, $req_storage);
+            $c->send({json => $api_response}, $req_storage);
             return;
         });
     return;

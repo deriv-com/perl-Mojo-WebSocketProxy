@@ -17,10 +17,10 @@ around 'send' => sub {
     my $config = Mojo::WebSocketProxy::Config->new->{config};
 
     my $before_send_api_response = $config->{before_send_api_response};
-    $_->($c, $req_storage, $response)
+    $_->($c, $req_storage, $response->{json})
         for grep { $_ } (ref $before_send_api_response eq 'ARRAY' ? @{$before_send_api_response} : $before_send_api_response);
 
-    my $ret = $orig->($c, {json => $response});
+    my $ret = $orig->($c, $response);
 
     my $after_sent_api_response = $config->{after_sent_api_response};
     $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
@@ -93,7 +93,7 @@ sub on_message {
         warn("$$ timeout for " . JSON::to_json($args));
     }
 
-    $c->send($result, $req_storage) if $result;
+    $c->send({json => $result}, $req_storage) if $result;
 
     $c->_run_hooks($config->{after_dispatch} || []);
 
