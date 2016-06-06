@@ -11,20 +11,14 @@ use Data::UUID;
 sub make_call_params {
     my ($c, $req_storage) = @_;
 
-    my $args           = $req_storage->{args};
-    my $stash_params   = $req_storage->{stash_params};
-    my $require_auth   = $req_storage->{require_auth};
-    my $call_params_cb = delete $req_storage->{make_call_params};
+    my $args         = $req_storage->{args};
+    my $stash_params = $req_storage->{stash_params};
 
     my $call_params = $req_storage->{call_params};
     $call_params->{args} = $args;
 
     if (defined $stash_params) {
         $call_params->{$_} = $c->stash($_) for @$stash_params;
-    }
-    if (defined $call_params_cb) {
-        my $cb_params = $call_params_cb->($c, $args);
-        $call_params->{$_} = $cb_params->{$_} for keys %$cb_params;
     }
 
     return $call_params;
@@ -46,6 +40,9 @@ sub get_rpc_response_cb {
         return sub {
             my $rpc_response = shift;
             if (ref($rpc_response) eq 'HASH' and exists $rpc_response->{error}) {
+                # my $emiter = Mojo::WebSocketProxy::Emitter->new;
+                # $req_storage->{event_emmiter}->on(rpc_error => \&error_api_response)
+                # $req_storage->{event_emmiter}->emit(rpc_error => [$rpc_response, $req_storage]);
                 $error_handler->($c, $rpc_response, $req_storage) if defined $error_handler;
                 return error_api_response($c, $rpc_response, $req_storage);
             } else {
@@ -111,10 +108,11 @@ sub call_rpc {
     my $c           = shift;
     my $req_storage = shift;
 
-    my $method      = $req_storage->{method};
-    my $msg_type    = $req_storage->{msg_type} ||= $req_storage->{method};
-    my $url         = ($req_storage->{url} . $req_storage->{method});
-    my $call_params = $req_storage->{call_params} ||= {};
+    my $method   = $req_storage->{method};
+    my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
+    my $url      = ($req_storage->{url} . $req_storage->{method});
+
+    $req_storage->{call_params} ||= {};
 
     my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
     my $max_response_size = Mojo::WebSocketProxy::Config->new->{config}->{max_response_size};
@@ -206,20 +204,18 @@ The calling engine which does the actual RPC call.
 
 =head2 forward
 
-Forward the call to RPC service and return answer to websocket connection.
+Forward the call to RPC service and return response to websocket connection.
 
-Call params made in make_call_params method.
-Response made in success_api_response method.
+Call params is made in make_call_params method.
+Response is made in success_api_response method.
 These methods would be override or extend custom functionality.
 
 =head2 make_call_params
 
 Make RPC call params.
-If the action require auth then it'll forward token from server storage.
 
 Method params:
     stash_params - it contains params to forward from server storage.
-    call_params - callback for custom making call params.
 
 =head2 rpc_response_cb
 
