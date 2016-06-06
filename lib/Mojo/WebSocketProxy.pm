@@ -230,25 +230,10 @@ Hook which will run if RPC returns value with error key, i.e.
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
 
-=head2 before_get_rpc_response
-
-Same as L<Mojolicious::Plugin::WebSocketProxy/"before_get_rpc_response (global)"> except for using for particular action
-
-=head2 after_got_rpc_response
-
-Same as L<Mojolicious::Plugin::WebSocketProxy/"after_got_rpc_response (global)"> except for using for particular action
-
-=head2 before_send_api_response
-
-Same as L<Mojolicious::Plugin::WebSocketProxy/"before_send_api_response (global)"> except for using for particular action
-
-=head2 after_sent_api_response
-
-Same as L<Mojolicious::Plugin::WebSocketProxy/"after_sent_api_response (global)"> except for using for particular action
-
 =head1 SEE ALSO
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
+L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>

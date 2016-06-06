@@ -229,7 +229,7 @@ Make RPC call.
 =head1 SEE ALSO
  
 L<Mojolicious::Plugin::WebSocketProxy>, 
-L<Mojo::WebSocketProxy>,
+L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
