@@ -26,7 +26,7 @@ sub register {
                 code    => $code,
                 message => $message
             };
-            $error->{details} = $details if (keys %$details);
+            $error->{details} = $details if ref($details) eq 'HASH' && keys %$details;
 
             return {
                 msg_type => $msg_type,

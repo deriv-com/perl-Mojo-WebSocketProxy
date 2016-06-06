@@ -96,7 +96,8 @@ sub error_api_response {
 
     my $msg_type             = $req_storage->{msg_type};
     my $rpc_response_handler = $req_storage->{response};
-    my $api_response         = $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client});
+    my $api_response =
+        $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client}, $rpc_response->{error}->{details});
 
     my $custom_response;
     if ($rpc_response_handler) {
