@@ -87,7 +87,7 @@ sub on_message {
         }
     };
     if ($@) {
-        $c->app->log->info("$$ timeout for " . JSON::to_json($args));
+        warn("$$ timeout for " . JSON::to_json($args));
     }
 
     $c->send($result, $req_storage) if $result;
