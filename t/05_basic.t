@@ -29,7 +29,6 @@ sub startup {
                 'some_action5',
                 {
                     after_got_rpc_response   => \&main::some_action51,
-                    before_send_api_response => \&main::some_action52
                 }
             ],
             ['some_action6', {stash_params => [qw/ stashed_data /]}],
@@ -73,7 +72,7 @@ sub before_forward {
 
 sub add_debug {
     my ($c, $req_storage, $api_response) = @_;
-    $api_response->{debug} = 1;
+    $api_response->{debug} = $req_storage->{debug_value} || 1;
     return;
 }
 
@@ -170,21 +169,13 @@ ok $res->{debug}, 'Should add debug param';
 
 sub some_action51 {
     my ($c, $req_storage, $rps_response) = @_;
-    $req_storage->{some_temp_value} = 1;
-    return;
-}
-
-sub some_action52 {
-    my ($c, $req_storage, $api_response) = @_;
-    if ($req_storage->{some_temp_value}) {
-        %$api_response = (custom_result => 3);
-    }
+    $req_storage->{debug_value} = 3;
     return;
 }
 
 $t = $t->send_ok({json => {some_action5 => 1}})->message_ok;
 $res = decode_json($t->message->[1]);
-is $res->{custom_result}, 3, 'You can use request storage to share data between hooks';
+is $res->{debug}, 3, 'You can use request storage to share data between hooks';
 
 $rpc_response = {
     ok    => 1,
