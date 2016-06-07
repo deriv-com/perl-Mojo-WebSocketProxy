@@ -9,7 +9,7 @@ To install this module, run the following commands:
 	make
 	make test
 	make install
-	
+
 #### NAME
 
 Mojo::WebSocketProxy - proxy WebSocket-JSON requests to RPC server
@@ -228,7 +228,8 @@ Hook which will run if RPC returns success value.
     
 
 Hook which will run if RPC returns value with error key, e.g. 
-{ result => { error => { code => 'some\_error' } } }
+
+    { result => { error => { code => 'some_error' } } }
 
 ##### response
 
