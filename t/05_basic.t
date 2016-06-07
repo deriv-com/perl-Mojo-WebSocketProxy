@@ -28,7 +28,7 @@ sub startup {
             [
                 'some_action5',
                 {
-                    after_got_rpc_response   => \&main::some_action51,
+                    after_got_rpc_response => \&main::some_action51,
                 }
             ],
             ['some_action6', {stash_params => [qw/ stashed_data /]}],

@@ -115,7 +115,7 @@ sub call_rpc {
     $req_storage->{call_params} ||= {};
 
     my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
-    my $max_response_size = Mojo::WebSocketProxy::Config->new->{config}->{max_response_size};
+    my $max_response_size = $c->wsp_config->{config}->{max_response_size};
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];

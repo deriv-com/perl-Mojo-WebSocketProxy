@@ -14,7 +14,7 @@ use Time::Out qw(timeout);
 around 'send' => sub {
     my ($orig, $c, $response, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
 
     my $before_send_api_response = $config->{before_send_api_response};
     $_->($c, $req_storage, $response->{json})
@@ -44,7 +44,7 @@ sub open_connection {
     # Enable permessage-deflate
     $c->tx->with_compression;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
 
     Mojo::IOLoop->singleton->stream($c->tx->connection)->timeout($config->{stream_timeout}) if $config->{stream_timeout};
     Mojo::IOLoop->singleton->max_connections($config->{max_connections}) if $config->{max_connections};
@@ -60,7 +60,7 @@ sub open_connection {
 sub on_message {
     my ($c, $args) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
 
     my $result;
     my $req_storage = {};
@@ -103,7 +103,7 @@ sub on_message {
 sub before_forward {
     my ($c, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
 
     # Should first call global hooks
     my $before_forward_hooks = [
@@ -117,7 +117,7 @@ sub before_forward {
 sub after_forward {
     my ($c, $result, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
     return $c->_run_hooks($config->{after_forward} || [], $result, $req_storage);
 }
 
@@ -146,7 +146,7 @@ sub dispatch {
     my ($action) =
         sort { $a->{order} <=> $b->{order} }
         grep { defined }
-        map  { Mojo::WebSocketProxy::Config->new->{actions}->{$_} } keys %$args;
+        map  { $c->wsp_config->{actions}->{$_} } keys %$args;
 
     return $action;
 }
@@ -154,7 +154,7 @@ sub dispatch {
 sub forward {
     my ($c, $req_storage) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
+    my $config = $c->wsp_config->{config};
 
     $req_storage->{url} ||= $config->{url};
     die 'No url found' unless $req_storage->{url};

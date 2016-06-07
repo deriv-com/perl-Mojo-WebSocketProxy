@@ -3,8 +3,6 @@ package Mojo::WebSocketProxy::Dispatcher::Parser;
 use strict;
 use warnings;
 
-use Mojo::WebSocketProxy::Config;
-
 sub parse_req {
     my ($c, $req_storage) = @_;
 
@@ -25,21 +23,22 @@ sub _check_sanity {
     my ($c, $req_storage) = @_;
 
     my @failed;
-    my $args = $req_storage->{args};
+    my $args   = $req_storage->{args};
+    my $config = $c->wsp_config->{config};
 
     OUTER:
     foreach my $k (keys %$args) {
         if (not ref $args->{$k}) {
-            last OUTER if (@failed = _failed_key_value($k, $args->{$k}));
+            last OUTER if (@failed = _failed_key_value($k, $args->{$k}, $config->{skip_check_sanity}));
         } else {
             if (ref $args->{$k} eq 'HASH') {
                 foreach my $l (keys %{$args->{$k}}) {
                     last OUTER
-                        if (@failed = _failed_key_value($l, $args->{$k}->{$l}));
+                        if (@failed = _failed_key_value($l, $args->{$k}->{$l}, $config->{skip_check_sanity}));
                 }
             } elsif (ref $args->{$k} eq 'ARRAY') {
                 foreach my $l (@{$args->{$k}}) {
-                    last OUTER if (@failed = _failed_key_value($k, $l));
+                    last OUTER if (@failed = _failed_key_value($k, $l, $config->{skip_check_sanity}));
                 }
             }
         }
@@ -59,10 +58,9 @@ sub _check_sanity {
 }
 
 sub _failed_key_value {
-    my ($key, $value) = @_;
+    my ($key, $value, $skip_check_sanity) = @_;
 
-    my $config = Mojo::WebSocketProxy::Config->new->{config};
-    if ($config->{skip_check_sanity} && ref($config->{skip_check_sanity}) eq 'Regexp' && $key =~ /$config->{skip_check_sanity}/) {
+    if ($skip_check_sanity && $key =~ /$skip_check_sanity/) {
         return;
     } elsif (
         $key !~ /^[A-Za-z0-9_-]{1,50}$/

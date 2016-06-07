@@ -55,6 +55,12 @@ sub register {
         die 'No actions found!';
     }
 
+    $app->helper(
+        wsp_config => sub {
+            my $c = shift;
+            return $dispatcher_config;
+        });
+
     return;
 }
 
