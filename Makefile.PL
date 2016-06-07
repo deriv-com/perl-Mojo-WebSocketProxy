@@ -1,4 +1,4 @@
-use 5.010;
+use 5.14;
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
@@ -9,7 +9,7 @@ WriteMakefile(
     AUTHOR           => 'Binary.com (binary@cpan.org)',
     ABSTRACT         => 'Perl implementation of websocket-JSON-RPC 2.0 proxy',
     PL_FILES         => {},
-    MIN_PERL_VERSION => 5.010,
+    MIN_PERL_VERSION => 5.14,
     BUILD_REQUIRES   => {
         'Test::More'       => 0,
         'Test::MockModule' => 0,
@@ -17,8 +17,18 @@ WriteMakefile(
         'JSON'             => 0,
     },
     PREREQ_PM => {
-        'Test::Simple' => 0.44,
-        'Mojolicious'  => 0,
+        'Test::Simple'             => 0.44,
+        'Mojolicious'              => 0,
+        'MojoX::JSON::RPC'         => 0,
+        'Guard'                    => 0,
+        'JSON'                     => 0,
+        'Data::UUID'               => 0,
+        'Test::More'               => 0,
+        'Test::Mojo'               => 0,
+        'Test::MockModule'         => 0,
+        'Test::MockObject'         => 0,
+        'Time::Out'                => 0,
+        'Class::Method::Modifiers' => 0,
     },
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => 6.64,
@@ -28,7 +38,7 @@ WriteMakefile(
         SUFFIX   => 'gz',
     },
     META_MERGE => {
-        requires  => {perl => 5.010},
+        requires  => {perl => 5.14},
         resources => {
             homepage   => 'https://github.com/binary-com/perl-Mojo-WebSocketProxy',
             bugtracker => 'https://github.com/binary-com/perl-Mojo-WebSocketProxy/issues',
