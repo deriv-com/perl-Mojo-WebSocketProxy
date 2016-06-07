@@ -60,10 +60,11 @@ sub _check_sanity {
 sub _failed_key_value {
     my ($key, $value, $skip_check_sanity) = @_;
 
-    if ($skip_check_sanity && $key =~ /$skip_check_sanity/) {
+    my $key_regex = qr/^[A-Za-z0-9_-]{1,50}$/;
+    if ($skip_check_sanity && $key =~ /$skip_check_sanity/ && $key =~ /$key_regex/) {
         return;
     } elsif (
-        $key !~ /^[A-Za-z0-9_-]{1,50}$/
+        $key !~ /$key_regex/
         # !-~ to allow a range of acceptable characters. To find what is the range, look at ascii table
 
         # please don't remove: \p{Script=Common}\p{L}
