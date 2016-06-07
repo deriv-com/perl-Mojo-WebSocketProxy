@@ -61,13 +61,18 @@ sub _failed_key_value {
     my ($key, $value, $skip_check_sanity) = @_;
 
     my $key_regex = qr/^[A-Za-z0-9_-]{1,50}$/;
-    if ($skip_check_sanity && $key =~ /$skip_check_sanity/ && $key =~ /$key_regex/) {
+    if ($key !~ /$key_regex/) {
+        return ($key, $value);
+    }
+
+    if ($skip_check_sanity && $key =~ /$skip_check_sanity/) {
         return;
-    } elsif (
+    }
+
+    if (
         $key !~ /$key_regex/
         # !-~ to allow a range of acceptable characters. To find what is the range, look at ascii table
 
-        # please don't remove: \p{Script=Common}\p{L}
         # \p{L} is to match utf-8 characters
         # \p{Script=Common} is to match double byte characters in Japanese keyboards, eg: '１−１−１'
         # refer: http://perldoc.perl.org/perlunicode.html
