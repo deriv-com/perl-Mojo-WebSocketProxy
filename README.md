@@ -227,7 +227,7 @@ Hook which will run if RPC returns success value.
     error => sub { my ($c, $rpc_response) = @_; ... }
     
 
-Hook which will run if RPC returns value with error key, i.e. 
+Hook which will run if RPC returns value with error key, e.g. 
 { result => { error => { code => 'some\_error' } } }
 
 ##### response

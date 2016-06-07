@@ -3,24 +3,17 @@ package Mojo::WebSocketProxy::Config;
 use strict;
 use warnings;
 
-use Mojo::Base -base;
+use feature 'state';
 
-my $actions;
-my $config;
-
-sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new(@_);
-
-    $self->{actions} = {%$actions} if $actions;
-    $self->{config}  = {%$config}  if $config;
-    return $self;
+sub config {
+    my ($class, $in_config) = @_;
+    return state $config ||= $in_config;
 }
 
 sub init {
     my ($self, $in_config) = @_;
 
-    $config  = {};
+    my $config  = {};
     $actions = {};
     
     die 'Wrong parameter' if $in_config->{opened_connection} && ref($in_config->{opened_connection}) ne 'CODE';
