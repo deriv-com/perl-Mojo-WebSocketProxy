@@ -1,4 +1,4 @@
-package Mojo::WebSocketProxy::Dispatcher::Parser;
+package Mojo::WebSocketProxy::Parser;
 
 use strict;
 use warnings;
@@ -84,7 +84,7 @@ __END__
 
 =head1 NAME
 
-Mojo::WebSocketProxy::Dispatcher::Parser
+Mojo::WebSocketProxy::Parser
 
 =head1 DESCRIPTION
 
@@ -97,6 +97,6 @@ L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
-L<Mojo::WebSocketProxy::Dispatcher::Parser>
+L<Mojo::WebSocketProxy::Parser>
 
 =cut

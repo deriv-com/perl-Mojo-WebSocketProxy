@@ -238,7 +238,7 @@ L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
-L<Mojo::WebSocketProxy::Dispatcher::Parser>
+L<Mojo::WebSocketProxy::Parser>
 
 =head1 COPYRIGHT AND LICENSE
 

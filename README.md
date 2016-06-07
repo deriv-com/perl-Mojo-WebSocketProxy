@@ -246,7 +246,7 @@ It good place to modify API response format.
 [Mojo::WebSocketProxy::CallingEngine](https://metacpan.org/pod/Mojo::WebSocketProxy::CallingEngine),
 [Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher),
 [Mojo::WebSocketProxy::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Config)
-[Mojo::WebSocketProxy::Dispatcher::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher::Parser)
+[Mojo::WebSocketProxy::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Parser)
 
 #### COPYRIGHT AND LICENSE
 

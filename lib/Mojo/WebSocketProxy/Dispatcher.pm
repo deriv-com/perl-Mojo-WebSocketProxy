@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Mojo::Base 'Mojolicious::Controller';
-use Mojo::WebSocketProxy::Dispatcher::Parser;
+use Mojo::WebSocketProxy::Parser;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::CallingEngine;
 
@@ -66,7 +66,7 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
     timeout 15 => sub {
-        $result = Mojo::WebSocketProxy::Dispatcher::Parser::parse_req($c, $req_storage);
+        $result = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage);
         if (!$result
             && (my $action = $c->dispatch($args)))
         {
@@ -221,6 +221,6 @@ L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
-L<Mojo::WebSocketProxy::Dispatcher::Parser>
+L<Mojo::WebSocketProxy::Parser>
 
 =cut

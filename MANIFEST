@@ -8,6 +8,6 @@ lib/Mojo/WebSocketProxy.pm
 lib/Mojo/WebSocketProxy/Config.pm
 lib/Mojo/WebSocketProxy/CallingEngine.pm
 lib/Mojo/WebSocketProxy/Dispatcher.pm
-lib/Mojo/WebSocketProxy/Dispatcher/Parser.pm
+lib/Mojo/WebSocketProxy/Parser.pm
 t/05_basic.t
 .travis.yml
