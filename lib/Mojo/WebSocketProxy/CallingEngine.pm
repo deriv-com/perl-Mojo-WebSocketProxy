@@ -34,7 +34,7 @@ sub get_rpc_response_cb {
     if (my $rpc_response_cb = delete $req_storage->{rpc_response_cb}) {
         return sub {
             my $rpc_response = shift;
-            return $rpc_response_cb->($c, $req_storage->{args}, $rpc_response);
+            return $rpc_response_cb->($c, $rpc_response, $req_storage);
         };
     } else {
         return sub {
@@ -224,8 +224,8 @@ Make wsapi proxy server response from RPC response.
 Make RPC call.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
