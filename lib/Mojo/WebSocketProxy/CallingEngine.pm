@@ -40,9 +40,6 @@ sub get_rpc_response_cb {
         return sub {
             my $rpc_response = shift;
             if (ref($rpc_response) eq 'HASH' and exists $rpc_response->{error}) {
-                # my $emiter = Mojo::WebSocketProxy::Emitter->new;
-                # $req_storage->{event_emmiter}->on(rpc_error => \&error_api_response)
-                # $req_storage->{event_emmiter}->emit(rpc_error => [$rpc_response, $req_storage]);
                 $error_handler->($c, $rpc_response, $req_storage) if defined $error_handler;
                 return error_api_response($c, $rpc_response, $req_storage);
             } else {
