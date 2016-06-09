@@ -112,7 +112,6 @@ sub call_rpc {
     $req_storage->{call_params} ||= {};
 
     my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
-    my $max_response_size = $c->wsp_config->{config}->{max_response_size};
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
@@ -163,11 +162,8 @@ sub call_rpc {
 
             return unless $api_response;
 
-            if ($max_response_size && length(JSON::to_json($api_response)) > $max_response_size) {
-                $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
-            }
-
             $c->send({json => $api_response}, $req_storage);
+
             return;
         });
     return;
