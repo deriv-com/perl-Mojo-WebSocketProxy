@@ -29,9 +29,7 @@ around 'send' => sub {
 };
 
 sub ok {
-    my $c      = shift;
-    my $source = 1;       # check http origin here
-    $c->stash(source => $source);
+    my $c = shift;
     return 1;
 }
 
@@ -215,8 +213,8 @@ Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
