@@ -1,5 +1,8 @@
 Revision history for Perl module Mojo::WebSocketProxy
 
+0.03 Thu Jun  9 15:50:00 2016
+    - Use before send hook to check response size
+
 0.02 Thu Jun  9 09:28:00 2016
     - Minor fixes
 
