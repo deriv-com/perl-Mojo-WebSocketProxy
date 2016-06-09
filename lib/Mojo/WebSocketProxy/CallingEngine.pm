@@ -34,15 +34,12 @@ sub get_rpc_response_cb {
     if (my $rpc_response_cb = delete $req_storage->{rpc_response_cb}) {
         return sub {
             my $rpc_response = shift;
-            return $rpc_response_cb->($c, $req_storage->{args}, $rpc_response);
+            return $rpc_response_cb->($c, $rpc_response, $req_storage);
         };
     } else {
         return sub {
             my $rpc_response = shift;
             if (ref($rpc_response) eq 'HASH' and exists $rpc_response->{error}) {
-                # my $emiter = Mojo::WebSocketProxy::Emitter->new;
-                # $req_storage->{event_emmiter}->on(rpc_error => \&error_api_response)
-                # $req_storage->{event_emmiter}->emit(rpc_error => [$rpc_response, $req_storage]);
                 $error_handler->($c, $rpc_response, $req_storage) if defined $error_handler;
                 return error_api_response($c, $rpc_response, $req_storage);
             } else {
@@ -227,8 +224,8 @@ Make wsapi proxy server response from RPC response.
 Make RPC call.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
