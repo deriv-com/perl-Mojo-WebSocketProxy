@@ -1,4 +1,7 @@
 Revision history for Perl module Mojo::WebSocketProxy
 
+0.02 Thu Jun  9 09:28:00 2016
+    - Minor fixes
+
 0.01 Thu Jun  2 06:02:18 2016
     - First version, released on an unsuspecting world.

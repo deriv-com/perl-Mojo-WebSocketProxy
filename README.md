@@ -1,5 +1,5 @@
 # perl-Mojo-WebSocketProxy
-[![Build Status](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy.svg?branch=master)](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy) 
+[![Build Status](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy.svg?branch=master)](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy)
 
 #### INSTALLATION
 
@@ -12,56 +12,56 @@ To install this module, run the following commands:
 
 #### NAME
 
-Mojo::WebSocketProxy - proxy WebSocket-JSON requests to RPC server
+Mojo::WebSocketProxy - WebSocket proxy for JSON-RPC 2.0 server
 
 #### SYNOPSYS
 
-       #### lib/your-application.pm
-    
-       use base 'Mojolicious';
-    
-       sub startup {
-           my $self = shift;
-           $self->plugin(
-               'web_socket_proxy' => {
-                   actions => [
-                       ['json_key', {some_param => 'some_value'}]
-                   ],
-                   base_path => '/api',
-                   url => 'http://rpc-host.com:8080/',
-               }
-           );
-      }
+     # lib/your-application.pm
+
+     use base 'Mojolicious';
+
+     sub startup {
+         my $self = shift;
+         $self->plugin(
+             'web_socket_proxy' => {
+                 actions => [
+                     ['json_key', {some_param => 'some_value'}]
+                 ],
+                 base_path => '/api',
+                 url => 'http://rpc-host.com:8080/',
+             }
+         );
+    }
 
 Or to manually call RPC server:
 
-       #### lib/your-application.pm
-    
-       use base 'Mojolicious';
-    
-       sub startup {
-           my $self = shift;
-           $self->plugin(
-               'web_socket_proxy' => {
-                   actions => [
-                       [
-                           'json_key', 
-                           {
-                               instead_of_forward => sub {
-                                   shift->call_rpc({  
-                                       args => $args,
-                                       method => $rpc_method, #### it'll call 'http://rpc-host.com:8080/rpc_method'
-                                       rpc_response_cb => sub {...}
-                                   });
-                               }
-                           }
-                       ]
-                   ],
-                   base_path => '/api',
-                   url => 'http://rpc-host.com:8080/',
-               }
-           );
-      }
+     # lib/your-application.pm
+
+     use base 'Mojolicious';
+
+     sub startup {
+         my $self = shift;
+         $self->plugin(
+             'web_socket_proxy' => {
+                 actions => [
+                     [
+                         'json_key',
+                         {
+                             instead_of_forward => sub {
+                                 shift->call_rpc({
+                                     args => $args,
+                                     method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
+                                     rpc_response_cb => sub {...}
+                                 });
+                             }
+                         }
+                     ]
+                 ],
+                 base_path => '/api',
+                 url => 'http://rpc-host.com:8080/',
+             }
+         );
+    }
 
 #### DESCRIPTION
 
@@ -78,7 +78,6 @@ The plugin sends websocket messages to clietn with RPC response data.
 If RPC reponse looks like this:
 
     {status => 1}
-    
 
 It returns simple response like this:
 
@@ -90,7 +89,6 @@ If RPC returns something like this:
         response_data => [..],
         status        => 1,
     }
-    
 
 Plugin returns common response like this:
 
@@ -107,17 +105,16 @@ The plugin understands the following parameters.
 
 ##### actions
 
-A pointer to array of action details, which contain stash\_params, 
+A pointer to array of action details, which contain stash\_params,
 request-response callbacks, other call parameters.
 
     $self->plugin(
         'web_socket_proxy' => {
-            actions => [ 
+            actions => [
                 ['action1_json_key', {details_key1 => details_value1}],
                 ['action2_json_key']
             ]
         });
-        
 
 ##### before\_forward
 
@@ -142,7 +139,6 @@ If returns any hash ref then that value will be JSON encoded and send to client.
 ##### after\_dispatch
 
     after_dispatch => [sub { my $c = shift; ... }, sub {...}]
-    
 
 Global hooks which will run at the end of request handling.
 
@@ -176,11 +172,11 @@ API url for make route.
 
 ##### stream\_timeout
 
-See ["timeout" in Mojo::IOLoop::Stream](https://metacpan.org/pod/Mojo::IOLoop::Stream####timeout)
+See ["timeout" in Mojo::IOLoop::Stream](https://metacpan.org/pod/Mojo::IOLoop::Stream#timeout)
 
 ##### max\_connections
 
-See ["max\_connections" in Mojo::IOLoop](https://metacpan.org/pod/Mojo::IOLoop####max_connections)
+See ["max\_connections" in Mojo::IOLoop](https://metacpan.org/pod/Mojo::IOLoop#max_connections)
 
 ##### max\_response\_size
 
@@ -192,7 +188,7 @@ Callback for doing something once after connection is opened
 
 ##### finish\_connection
 
-Callback for doing something every time when connection is closed. 
+Callback for doing something every time when connection is closed.
 
 ##### url
 
@@ -210,38 +206,35 @@ Will send specified parameters from Mojolicious $c->stash.
 You can store RPC response data to Mojolicious stash returning data like this:
 
     rpc_response => {
-        stast => {..} #### data to store in Mojolicious stash
-        response_key1 => response_value1, #### response to API client
+        stast => {..} # data to store in Mojolicious stash
+        response_key1 => response_value1, # response to API client
         response_key2 => response_value2
     }
 
 ##### success
 
     success => sub { my ($c, $rpc_response) = @_; ... }
-    
 
 Hook which will run if RPC returns success value.
 
 ##### error
 
     error => sub { my ($c, $rpc_response) = @_; ... }
-    
 
-Hook which will run if RPC returns value with error key, e.g. 
+Hook which will run if RPC returns value with error key, e.g.
 
     { result => { error => { code => 'some_error' } } }
 
 ##### response
 
     response => sub { my ($c, $rpc_response) = @_; ... }
-    
 
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
 
 #### SEE ALSO
 
-[Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy), 
+[Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy),
 [Mojo::WebSocketProxy](https://metacpan.org/pod/Mojo::WebSocketProxy)
 [Mojo::WebSocketProxy::CallingEngine](https://metacpan.org/pod/Mojo::WebSocketProxy::CallingEngine),
 [Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher),
