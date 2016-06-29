@@ -7,7 +7,7 @@ WriteMakefile(
     NAME             => 'Mojo::WebSocketProxy',
     VERSION_FROM     => 'lib/Mojo/WebSocketProxy.pm',
     AUTHOR           => 'Binary.com (binary@cpan.org)',
-    ABSTRACT         => 'Perl implementation of websocket-JSON-RPC 2.0 proxy',
+    ABSTRACT         => 'Perl implementation of websocket JSON-RPC 2.0 proxy',
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.014,
     BUILD_REQUIRES   => {

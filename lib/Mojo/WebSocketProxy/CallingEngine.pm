@@ -34,15 +34,12 @@ sub get_rpc_response_cb {
     if (my $rpc_response_cb = delete $req_storage->{rpc_response_cb}) {
         return sub {
             my $rpc_response = shift;
-            return $rpc_response_cb->($c, $req_storage->{args}, $rpc_response);
+            return $rpc_response_cb->($c, $rpc_response, $req_storage);
         };
     } else {
         return sub {
             my $rpc_response = shift;
             if (ref($rpc_response) eq 'HASH' and exists $rpc_response->{error}) {
-                # my $emiter = Mojo::WebSocketProxy::Emitter->new;
-                # $req_storage->{event_emmiter}->on(rpc_error => \&error_api_response)
-                # $req_storage->{event_emmiter}->emit(rpc_error => [$rpc_response, $req_storage]);
                 $error_handler->($c, $rpc_response, $req_storage) if defined $error_handler;
                 return error_api_response($c, $rpc_response, $req_storage);
             } else {
@@ -115,7 +112,6 @@ sub call_rpc {
     $req_storage->{call_params} ||= {};
 
     my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
-    my $max_response_size = $c->wsp_config->{config}->{max_response_size};
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
@@ -166,11 +162,8 @@ sub call_rpc {
 
             return unless $api_response;
 
-            if ($max_response_size && length(JSON::to_json($api_response)) > $max_response_size) {
-                $api_response = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
-            }
-
             $c->send({json => $api_response}, $req_storage);
+
             return;
         });
     return;
@@ -227,8 +220,8 @@ Make wsapi proxy server response from RPC response.
 Make RPC call.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,

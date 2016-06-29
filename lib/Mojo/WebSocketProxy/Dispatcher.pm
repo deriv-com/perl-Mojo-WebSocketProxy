@@ -12,15 +12,20 @@ use Class::Method::Modifiers;
 use Time::Out qw(timeout);
 
 around 'send' => sub {
-    my ($orig, $c, $response, $req_storage) = @_;
+    my ($orig, $c, $api_response, $req_storage) = @_;
 
     my $config = $c->wsp_config->{config};
 
+    my $max_response_size = $config->{max_response_size};
+    if ($max_response_size && length(JSON::to_json($api_response)) > $max_response_size) {
+        $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
+    }
+
     my $before_send_api_response = $config->{before_send_api_response};
-    $_->($c, $req_storage, $response->{json})
+    $_->($c, $req_storage, $api_response->{json})
         for grep { $_ } (ref $before_send_api_response eq 'ARRAY' ? @{$before_send_api_response} : $before_send_api_response);
 
-    my $ret = $orig->($c, $response);
+    my $ret = $orig->($c, $api_response);
 
     my $after_sent_api_response = $config->{after_sent_api_response};
     $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
@@ -29,9 +34,7 @@ around 'send' => sub {
 };
 
 sub ok {
-    my $c      = shift;
-    my $source = 1;       # check http origin here
-    $c->stash(source => $source);
+    my $c = shift;
     return 1;
 }
 
@@ -215,8 +218,8 @@ Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
