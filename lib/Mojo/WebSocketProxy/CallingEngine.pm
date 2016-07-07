@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use MojoX::JSON::RPC::Client;
+use Mojo::UserAgent;
 use Guard;
 use JSON;
 use Data::UUID;
@@ -117,7 +118,7 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
 
-    my $client  = MojoX::JSON::RPC::Client->new;
+    my $client  = MojoX::JSON::RPC::Client->new(ua => Mojo::UserAgent->new(max_connections => 0));
     my $callobj = {
         id     => Data::UUID->new()->create_str(),
         method => $method,
