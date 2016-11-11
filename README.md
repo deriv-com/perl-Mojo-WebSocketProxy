@@ -1,5 +1,7 @@
 # perl-Mojo-WebSocketProxy
+
 [![Build Status](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy.svg?branch=master)](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy)
+[![codecov](https://codecov.io/gh/binary-com/perl-Mojo-WebSocketProxy/branch/master/graph/badge.svg)](https://codecov.io/gh/binary-com/perl-Mojo-WebSocketProxy)
 
 #### INSTALLATION
 
