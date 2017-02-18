@@ -8,6 +8,8 @@ use Guard;
 use JSON;
 use Data::UUID;
 
+## VERSION
+
 sub make_call_params {
     my ($c, $req_storage) = @_;
 
@@ -29,7 +31,6 @@ sub get_rpc_response_cb {
 
     my $success_handler = delete $req_storage->{success};
     my $error_handler   = delete $req_storage->{error};
-    my $msg_type        = $req_storage->{msg_type};
 
     if (my $rpc_response_cb = delete $req_storage->{rpc_response_cb}) {
         return sub {
@@ -77,7 +78,6 @@ sub success_api_response {
         $api_response->{$msg_type} = $rpc_response->{status};
     }
 
-    my $custom_response;
     if ($rpc_response_handler) {
         return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
     }
@@ -93,7 +93,6 @@ sub error_api_response {
     my $api_response =
         $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client}, $rpc_response->{error}->{details});
 
-    my $custom_response;
     if ($rpc_response_handler) {
         return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
     }

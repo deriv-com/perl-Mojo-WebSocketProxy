@@ -7,6 +7,8 @@ use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 
+## VERSION
+
 sub register {
     my ($self, $app, $config) = @_;
 
@@ -22,7 +24,7 @@ sub register {
         });
     $app->helper(
         wsp_error => sub {
-            my $c = shift;
+            shift; # $c
             my ($msg_type, $code, $message, $details) = @_;
 
             my $error = {
@@ -73,11 +75,11 @@ __END__
 Mojolicious::Plugin::WebSocketProxy
 
 =head1 SYNOPSYS
-    
+
     # lib/your-application.pm
- 
+
     use base 'Mojolicious';
- 
+
     sub startup {
         my $self = shift;
         $self->plugin(
@@ -92,21 +94,21 @@ Mojolicious::Plugin::WebSocketProxy
    }
 
 Or to manually call RPC server:
-    
+
     # lib/your-application.pm
- 
+
     use base 'Mojolicious';
- 
+
     sub startup {
         my $self = shift;
         $self->plugin(
             'web_socket_proxy' => {
                 actions => [
                     [
-                        'json_key', 
+                        'json_key',
                         {
                             instead_of_forward => sub {
-                                shift->call_rpc({  
+                                shift->call_rpc({
                                     args => $args,
                                     method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
                                     rpc_response_cb => sub {...}
@@ -127,8 +129,8 @@ Using this module you can forward websocket JSON-RPC 2.0 requests to RPC server.
 See L<Mojo::WebSocketProxy> for details on how to use hooks and parameters.
 
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>

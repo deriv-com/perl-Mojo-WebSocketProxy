@@ -11,6 +11,8 @@ use Mojo::WebSocketProxy::CallingEngine;
 use Class::Method::Modifiers;
 use Time::Out qw(timeout);
 
+## VERSION
+
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
@@ -34,7 +36,6 @@ around 'send' => sub {
 };
 
 sub ok {
-    my $c = shift;
     return 1;
 }
 
