@@ -218,6 +218,8 @@ Forward call to RPC server using global and action hooks.
 Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
 
+=head2 ok
+
 =head1 SEE ALSO
 
 L<Mojolicious::Plugin::WebSocketProxy>,

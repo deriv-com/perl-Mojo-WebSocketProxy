@@ -218,6 +218,8 @@ Make wsapi proxy server response from RPC response.
 
 Make RPC call.
 
+=head2 get_rpc_response_cb
+
 =head1 SEE ALSO
 
 L<Mojolicious::Plugin::WebSocketProxy>,

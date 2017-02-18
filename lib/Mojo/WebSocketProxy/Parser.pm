@@ -98,9 +98,13 @@ Mojo::WebSocketProxy::Parser
 
 This module using for parse JSON websocket messages.
 
+=head1 METHODS
+
+=head2 parse_req
+
 =head1 SEE ALSO
- 
-L<Mojolicious::Plugin::WebSocketProxy>, 
+
+L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
 L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
