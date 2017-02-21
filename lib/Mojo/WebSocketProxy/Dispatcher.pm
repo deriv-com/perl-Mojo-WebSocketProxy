@@ -11,6 +11,8 @@ use Mojo::WebSocketProxy::CallingEngine;
 use Class::Method::Modifiers;
 use Time::Out qw(timeout);
 
+## VERSION
+
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
@@ -34,7 +36,6 @@ around 'send' => sub {
 };
 
 sub ok {
-    my $c = shift;
     return 1;
 }
 
@@ -216,6 +217,8 @@ Dispatch request using message json key.
 Forward call to RPC server using global and action hooks.
 Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
+
+=head2 ok
 
 =head1 SEE ALSO
 
