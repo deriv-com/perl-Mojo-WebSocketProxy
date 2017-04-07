@@ -6,7 +6,7 @@ requires 'JSON';
 requires 'JSON::XS';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious';
-requires 'Scalar::Util',
+requires 'Scalar::Util';
 requires 'Variable::Disposition';
 requires 'perl', '5.014';
 
