@@ -9,7 +9,6 @@ use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::CallingEngine;
 
 use Class::Method::Modifiers;
-use Time::Out qw(timeout);
 
 use Mojo::JSON qw(encode_json);
 use Future::Utils qw/fmap/;
