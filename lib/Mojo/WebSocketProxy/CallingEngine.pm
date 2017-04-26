@@ -6,7 +6,6 @@ use warnings;
 use MojoX::JSON::RPC::Client;
 use Guard;
 use JSON;
-use Data::UUID;
 
 ## VERSION
 
@@ -117,8 +116,10 @@ sub call_rpc {
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
 
     my $client  = MojoX::JSON::RPC::Client->new;
+    state $request_no = 0;
     my $callobj = {
-        id     => Data::UUID->new()->create_str(),
+        # enough for short-term uniqueness
+        id     => $$ . $request_no++,
         method => $method,
         params => make_call_params($c, $req_storage),
     };
