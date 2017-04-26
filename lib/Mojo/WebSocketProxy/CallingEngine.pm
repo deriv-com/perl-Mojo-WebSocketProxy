@@ -99,6 +99,8 @@ sub error_api_response {
     return $api_response;
 }
 
+my $request_no = 0;
+
 sub call_rpc {
     my $c           = shift;
     my $req_storage = shift;
@@ -116,7 +118,6 @@ sub call_rpc {
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
 
     my $client  = MojoX::JSON::RPC::Client->new;
-    state $request_no = 0;
     my $callobj = {
         # enough for short-term uniqueness
         id     => $$ . $request_no++,
