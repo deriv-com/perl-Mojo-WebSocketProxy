@@ -99,7 +99,7 @@ sub error_api_response {
     return $api_response;
 }
 
-my $request_no = 0;
+my $request_number = 0;
 
 sub call_rpc {
     my $c           = shift;
@@ -120,7 +120,7 @@ sub call_rpc {
     my $client  = MojoX::JSON::RPC::Client->new;
     my $callobj = {
         # enough for short-term uniqueness
-        id     => $$ . $request_no++,
+        id     => $$ . $request_number++,
         method => $method,
         params => make_call_params($c, $req_storage),
     };
