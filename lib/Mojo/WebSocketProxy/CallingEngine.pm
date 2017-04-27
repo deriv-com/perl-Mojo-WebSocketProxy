@@ -120,7 +120,7 @@ sub call_rpc {
     my $client  = MojoX::JSON::RPC::Client->new;
     my $callobj = {
         # enough for short-term uniqueness
-        id     => $$ . $request_number++,
+        id     => $$ . '_' . $request_number++,
         method => $method,
         params => make_call_params($c, $req_storage),
     };
