@@ -1,5 +1,4 @@
 requires 'Class::Method::Modifiers';
-requires 'Data::UUID';
 requires 'Guard';
 requires 'JSON';
 requires 'MojoX::JSON::RPC';
