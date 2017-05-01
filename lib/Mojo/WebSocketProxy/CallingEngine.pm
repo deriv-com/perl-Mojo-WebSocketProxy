@@ -6,7 +6,6 @@ use warnings;
 use MojoX::JSON::RPC::Client;
 use Guard;
 use JSON;
-use Data::UUID;
 
 ## VERSION
 
@@ -100,6 +99,8 @@ sub error_api_response {
     return $api_response;
 }
 
+my $request_number = 0;
+
 sub call_rpc {
     my $c           = shift;
     my $req_storage = shift;
@@ -118,7 +119,8 @@ sub call_rpc {
 
     my $client  = MojoX::JSON::RPC::Client->new;
     my $callobj = {
-        id     => Data::UUID->new()->create_str(),
+        # enough for short-term uniqueness
+        id     => join('_', $$, $request_number++, time, (0+[])),
         method => $method,
         params => make_call_params($c, $req_storage),
     };
