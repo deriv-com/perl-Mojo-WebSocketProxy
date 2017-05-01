@@ -25,7 +25,6 @@ my %WriteMakefileArgs = (
   "NAME" => "Mojo::WebSocketProxy",
   "PREREQ_PM" => {
     "Class::Method::Modifiers" => 0,
-    "Data::UUID" => 0,
     "Guard" => 0,
     "JSON" => 0,
     "MojoX::JSON::RPC" => 0,
@@ -40,7 +39,7 @@ my %WriteMakefileArgs = (
     "Test::CheckDeps" => "0.010",
     "Test::More" => "0.94"
   },
-  "VERSION" => "0.04",
+  "VERSION" => "0.05",
   "test" => {
     "TESTS" => "t/*.t"
   }
@@ -49,7 +48,6 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Class::Method::Modifiers" => 0,
-  "Data::UUID" => 0,
   "ExtUtils::MakeMaker" => 0,
   "File::Spec" => 0,
   "Guard" => 0,
