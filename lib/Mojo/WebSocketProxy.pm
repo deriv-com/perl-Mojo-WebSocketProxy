@@ -17,7 +17,7 @@ Mojo::WebSocketProxy - WebSocket proxy for JSON-RPC 2.0 server
 
     # lib/your-application.pm
 
-    use base 'Mojolicious';
+    use parent 'Mojolicious';
 
     sub startup {
         my $self = shift;
@@ -36,7 +36,7 @@ Or to manually call RPC server:
 
     # lib/your-application.pm
 
-    use base 'Mojolicious';
+    use parent 'Mojolicious';
 
     sub startup {
         my $self = shift;
