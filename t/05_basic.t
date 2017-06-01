@@ -103,7 +103,7 @@ is_deeply $res,
     {
     'error' => {
         'code'    => 'UnrecognisedRequest',
-        'message' => 'Unrecognised request.'
+        'message' => 'Unrecognised request'
     },
     'debug'    => 1,
     'msg_type' => 'error'
@@ -123,10 +123,12 @@ is_deeply $res,
     },
     'It should return error response if bad request';
 
+
 $t = $t->send_ok({json => {some_action1 => 1}})->message_ok;
 $res = decode_json($t->message->[1]);
 ok $res->{some_action1}, 'Should return success';
 ok $res->{debug},        'Should add debug param';
+
 
 $authorized = '';
 $url        = '';
@@ -134,6 +136,7 @@ $t          = $t->send_ok({json => {some_action1 => 1}})->message_ok;
 $res        = decode_json($t->message->[1]);
 is $res->{error}->{code}, 'AuthError', 'It should return before_forward response';
 ok !$url, 'It should not call RPC if before_forward returns anything';
+
 
 sub instead_of_forward {
     shift->call_rpc({
@@ -183,6 +186,7 @@ $rpc_response = {
 $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 is $call_params->{params}->{stashed_data}, 1, 'You can send data from Mojolicious stash to RPC service';
+
 
 sub some_action7 {
     my ($rpc_response, $api_response, $req_storage) = @_;
