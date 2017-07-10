@@ -144,7 +144,12 @@ sub call_rpc {
 
             my $api_response;
             if (!$res) {
-                warn "WrongResponse [$msg_type]";
+                my $tx = $client->tx;
+                my $details = 'URL: ' . $tx->req->url;
+                if (my $err = $tx->error) {
+                    $details .= ', code: ' . $err->{code} // 'n/a, response: '  . $err->{message};
+                }
+                warn "WrongResponse [$msg_type], details: $details";
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 $c->send({json => $api_response}, $req_storage);
                 return;
