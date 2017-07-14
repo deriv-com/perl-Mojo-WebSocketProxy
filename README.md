@@ -103,10 +103,10 @@ You can customize ws porxy response using 'response' hook.
 
 #### Sequence Diagram
 
-![Alt text](https://g.gravizo.com/source/custom_mark1?https%3A%2F%2Fraw.githubusercontent.com%2Fraunakkathuria%2Fperl-Mojo-WebSocketProxy%2Fupdate_documentation%2FREADME.md)
+![Alt text](https://g.gravizo.com/source/ws_proxy?https%3A%2F%2Fraw.githubusercontent.com%2Fraunakkathuria%2Fperl-Mojo-WebSocketProxy%2Fupdate_documentation%2FREADME.md)
 <details> 
 <summary></summary>
-custom_mark1
+ws_proxy
 @startuml;
 title Websocket Proxy
 
@@ -125,9 +125,10 @@ note over Websocket: after_dispatch
 
 note over RPC: processing
 
+note over Websocket: before_got_rpc_response
+
 RPC->Websocket: RPC response
 
-note over Websocket: before_got_rpc_response
 note over Websocket: after_got_rpc_response
 note over Websocket: success/error
 note over Websocket: response
@@ -140,7 +141,7 @@ note over Websocket: after_send_api_response
 
 Client->Websocket:Close Websocket connection
 @enduml
-custom_mark1
+ws_proxy
 </details>
 
 #### Plugin parameters
@@ -164,17 +165,32 @@ request-response callbacks, other call parameters.
 
     before_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after request is dispatched and before to start preparing RPC call.
+Global hook which will run after request is dispatched and before to start preparing RPC call.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client,
 without forward action to RPC. To call RPC every hook should return empty or undefined value.
 It's good place to some validation or subscribe actions.
 
+#### instead\_of\_forward (global)
+
+    instead_of_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
+
+Use this hook if you don't want dispatcher to call RPC and want to handle request
+in websocket itself. It's not good practice to use it as global hook because if
+if you return response from sub passed then it will return same response for each
+call.
+
+#### before\_call (global)
+
+    before_call => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
+
+Global hook which will run just before making rpc call.
+
 ##### after\_forward
 
     after_forward => [sub { my ($c, $result, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after every forwarded RPC call done.
+Global hook which will run after every forwarded RPC call done.
 Or even forward action isn't running.
 It can view or modify result value from 'before\_forward' hook.
 It'll run every hook or until any hook returns some non-empty result.
@@ -184,31 +200,31 @@ If returns any hash ref then that value will be JSON encoded and send to client.
 
     after_dispatch => [sub { my $c = shift; ... }, sub {...}]
 
-Global hooks which will run at the end of request handling.
+Global hook which will run at the end of request handling.
 
 ##### before\_get\_rpc\_response (global)
 
     before_get_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run when asynchronous RPC call is answered.
+Global hook which will run when asynchronous RPC call is answered.
 
 ##### after\_got\_rpc\_response (global)
 
     after_got_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after checked that response exists.
+Global hook which will run after checked that response exists.
 
 ##### before\_send\_api\_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage, $api_response) = @_; ... }, sub {...}]
 
-Global hooks which will run immediately before send API response.
+Global hook which will run immediately before send API response.
 
 ##### after\_sent\_api\_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run immediately after sent API response.
+Global hook which will run immediately after sent API response back to client.
 
 ##### base\_path
 
