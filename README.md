@@ -76,7 +76,7 @@ You can use Mojolicious stash to store data between messages in one connection.
 
 #### Proxy responses
 
-The plugin sends websocket messages to clietn with RPC response data.
+The plugin sends websocket messages to client with RPC response data.
 If RPC reponse looks like this:
 
     {status => 1}
@@ -100,6 +100,48 @@ Plugin returns common response like this:
     }
 
 You can customize ws porxy response using 'response' hook.
+
+#### Sequence Diagram
+
+![Alt text](https://g.gravizo.com/source/custom_mark1?https%3A%2F%2Fraw.githubusercontent.com%2Fraunakkathuria%2Fperl-Mojo-WebSocketProxy%2Fupdate_documentation%2FREADME.md)
+<details> 
+<summary></summary>
+custom_mark1
+@startuml;
+title Websocket Proxy
+
+participant Client
+
+Client->Websocket:Initiate connection
+Client->Websocket:Send Message
+
+note over Websocket: before_forward/instead_of_forward
+note over Websocket: before_call
+
+Websocket->RPC: RPC request
+
+note over Websocket: after_forward
+note over Websocket: after_dispatch
+
+note over RPC: processing
+
+RPC->Websocket: RPC response
+
+note over Websocket: before_got_rpc_response
+note over Websocket: after_got_rpc_response
+note over Websocket: success/error
+note over Websocket: response
+note over Websocket: before_send_api_response
+note over Websocket: send
+
+Websocket->Client:send response back
+
+note over Websocket: after_send_api_response
+
+Client->Websocket:Close Websocket connection
+@enduml
+custom_mark1
+</details>
 
 #### Plugin parameters
 
