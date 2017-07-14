@@ -120,7 +120,7 @@ note over Websocket: instead_of_forward
 
 Websocket->Websocket: instead_of_forward does not forward to rpc and returns response back from ws if its valid one
 
-Websocket->Client:send response (only if instead_of_forward)
+Websocket->Client: send response (only if instead_of_forward)
 
 note over Websocket: before_call
 
@@ -302,6 +302,22 @@ It good place to modify API response format.
 
 #### Instead of forward
 
+This hook is generally used if you don't want to forward request to RPC and want
+to handle it within websocket itself, for example like send back server time.
+
+Another case where its useful is if you don't want to send response to rpc url
+provided in global scope and want to forward to separate RPC service (useful if
+you have multiple RPC service to handle different type of request)
+
+```
+ instead_of_forward => sub {
+     shift->call_rpc({
+         url  => 'some other rpc url',
+         args => $args,
+         method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
+         rpc_response_cb => sub {...}
+     });
+```
 
 #### SEE ALSO
 
