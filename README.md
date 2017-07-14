@@ -120,6 +120,8 @@ note over Websocket: instead_of_forward
 
 Websocket->Websocket: instead_of_forward does not forward to rpc and returns response back from ws if its valid one
 
+Websocket->Client:send response (only if instead_of_forward)
+
 note over Websocket: before_call
 
 Websocket->RPC: RPC request
@@ -182,7 +184,7 @@ It's good place to some validation or subscribe actions.
 Use this hook if you don't want dispatcher to call RPC and want to handle request
 in websocket itself. It's not good practice to use it as global hook because if
 if you return response from sub passed then it will return same response for each
-call.
+call. [Read more](#instead-of-forward)
 
 #### before\_call (global)
 
@@ -190,7 +192,7 @@ call.
 
 Global hook which will run just before making rpc call.
 
-##### after\_forward
+##### after\_forward (global)
 
     after_forward => [sub { my ($c, $result, $req_storage) = @_; ... }, sub {...}]
 
@@ -200,7 +202,7 @@ It can view or modify result value from 'before\_forward' hook.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client.
 
-##### after\_dispatch
+##### after\_dispatch (global)
 
     after_dispatch => [sub { my $c = shift; ... }, sub {...}]
 
@@ -266,7 +268,9 @@ You can store url in every action options, or make it at before\_forward hook.
 
     stash_params => [qw/ stash_key1 stash_key2 /]
 
-Will send specified parameters from Mojolicious $c->stash.
+Use this if you want to send specified parameters from Mojolicious $c->stash to RPC.
+RPC will receive this as part of call params.
+
 You can store RPC response data to Mojolicious stash returning data like this:
 
     rpc_response => {
@@ -295,6 +299,9 @@ Hook which will run if RPC returns value with error key, e.g.
 
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
+
+#### Instead of forward
+
 
 #### SEE ALSO
 
