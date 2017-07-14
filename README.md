@@ -115,7 +115,11 @@ participant Client
 Client->Websocket:Initiate connection
 Client->Websocket:Send Message
 
-note over Websocket: before_forward/instead_of_forward
+note over Websocket: before_forward
+note over Websocket: instead_of_forward
+
+Websocket->Websocket: instead_of_forward does not forward to rpc and returns response back from ws if its valid one
+
 note over Websocket: before_call
 
 Websocket->RPC: RPC request
@@ -266,7 +270,7 @@ Will send specified parameters from Mojolicious $c->stash.
 You can store RPC response data to Mojolicious stash returning data like this:
 
     rpc_response => {
-        stast => {..} # data to store in Mojolicious stash
+        stash => {..} # data to store in Mojolicious stash
         response_key1 => response_value1, # response to API client
         response_key2 => response_value2
     }
