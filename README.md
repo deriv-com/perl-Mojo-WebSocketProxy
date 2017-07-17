@@ -315,9 +315,13 @@ you have multiple RPC service to handle different type of request)
          url  => 'some other rpc url',
          args => $args,
          method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
+         call_params => {key1 => value1, key2 => value2}
          rpc_response_cb => sub {...}
      });
 ```
+
+`args`        - Client side arguments for websocket call
+`call_params` - Used to pass additional params in addition to args to RPC
 
 #### SEE ALSO
 
