@@ -12,6 +12,14 @@ To install this module, run the following commands:
 	make test
 	make install
 
+or
+
+Install `dzil`
+
+	dzil test
+	dzil build
+	dzil install
+
 #### NAME
 
 Mojo::WebSocketProxy - WebSocket proxy for JSON-RPC 2.0 server
