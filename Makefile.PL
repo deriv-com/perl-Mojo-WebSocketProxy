@@ -31,8 +31,8 @@ my %WriteMakefileArgs = (
     "Guard" => 0,
     "JSON" => 0,
     "JSON::XS" => 0,
-    "MojoX::JSON::RPC" => 0,
-    "Mojolicious" => 0,
+    "MojoX::JSON::RPC" => "0.10",
+    "Mojolicious" => "5.77",
     "Scalar::Util" => 0,
     "Variable::Disposition" => 0
   },
