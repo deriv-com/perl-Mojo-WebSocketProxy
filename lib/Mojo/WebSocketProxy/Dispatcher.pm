@@ -61,7 +61,16 @@ sub open_connection {
 
     $config->{opened_connection}->($c) if $config->{opened_connection};
 
-    $c->on(json => \&on_message);
+    $c->on(json => sub {
+        my ($d, $hash) = @_;
+        on_message(@_) if $hash;
+    });
+
+    $c->on(binary => sub {
+        my ($d, $bytes) = @_;
+        $config->{binary_frame}(@_) if $bytes;
+    });
+
     $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
 
     return;
