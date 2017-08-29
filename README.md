@@ -234,6 +234,14 @@ Hook which will run if RPC returns value with error key, e.g.
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
 
+#### TESTING
+
+```
+dzil test
+```
+
+`dzil` uses git to work out which files are in the tree, although it'll read the content directly. Therefore if adding a new test, make sure it's being added to git.
+
 #### SEE ALSO
 
 [Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy),
