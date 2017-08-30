@@ -19,8 +19,8 @@ package t::FrontEnd {
                 actions => [],
                 binary_frame => sub {
                     my ($c, $bytes) = @_;
-                    my $payload = unpack 'a*', $bytes;
-                    $c->send({json => {payload => $payload}});
+                    my @payload = unpack 'N6', $bytes;
+                    $c->send({json => {payload => \@payload}});
                 },
                 base_path => '/api',
                 url => $ENV{T_TestWSP_RPC_URL} // die("T_TestWSP_RPC_URL is not defined"),
@@ -31,10 +31,10 @@ package t::FrontEnd {
 
 test_wsp {
     my ($t) = @_;
-    my $expected_payload = 'Hello world!';
+    my @expected_payload = (1, 2, 3, 4, 5, 6);
     $t->websocket_ok('/api' => {});
-    $t->send_ok({binary => $expected_payload})->message_ok;
-    is decode_json($t->message->[1])->{payload}, $expected_payload;
+    $t->send_ok({binary => pack 'N6', @expected_payload})->message_ok;
+    is_deeply decode_json($t->message->[1])->{payload}, \@expected_payload;
 } 't::FrontEnd';
 
 done_testing;
