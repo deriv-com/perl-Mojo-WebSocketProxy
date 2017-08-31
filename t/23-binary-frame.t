@@ -36,7 +36,7 @@ test_wsp {
     my $expected = path('t/data/tux.png')->slurp;
     $t->websocket_ok('/api' => {});
     $t->send_ok({binary => pack 'Na*', length $expected, $expected})->message_ok;
-    is_deeply decode_json($t->message->[1])->{payload}, $expected;
+    is decode_json($t->message->[1])->{payload}, $expected;
 } 't::FrontEnd';
 
 done_testing;
