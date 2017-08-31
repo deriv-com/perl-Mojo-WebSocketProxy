@@ -7,6 +7,7 @@ use Test::Mojo;
 use JSON::XS;
 use Mojo::IOLoop;
 use Future;
+use Path::Tiny;
 
 
 package t::FrontEnd {
@@ -19,8 +20,9 @@ package t::FrontEnd {
                 actions => [],
                 binary_frame => sub {
                     my ($c, $bytes) = @_;
-                    my @payload = unpack 'N6', $bytes;
-                    $c->send({json => {payload => \@payload}});
+                    my ($len, $payload) = unpack 'Na*', $bytes;
+                    die 'Invalid data' if $len != length $payload;
+                    $c->send({json => {payload => $payload}});
                 },
                 base_path => '/api',
                 url => $ENV{T_TestWSP_RPC_URL} // die("T_TestWSP_RPC_URL is not defined"),
@@ -31,10 +33,10 @@ package t::FrontEnd {
 
 test_wsp {
     my ($t) = @_;
-    my @expected_payload = (1, 2, 3, 4, 5, 6);
+    my $expected = path('t/data/tux.png')->slurp;
     $t->websocket_ok('/api' => {});
-    $t->send_ok({binary => pack 'N6', @expected_payload})->message_ok;
-    is_deeply decode_json($t->message->[1])->{payload}, \@expected_payload;
+    $t->send_ok({binary => pack 'Na*', length $expected, $expected})->message_ok;
+    is_deeply decode_json($t->message->[1])->{payload}, $expected;
 } 't::FrontEnd';
 
 done_testing;
