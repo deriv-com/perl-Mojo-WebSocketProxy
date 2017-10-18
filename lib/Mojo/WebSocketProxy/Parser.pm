@@ -54,7 +54,7 @@ sub _check_sanity {
             $req_storage->{args} = {};
         }
         # emit notification
-        $c->emit(sanity_failed => \@failed);
+        $c->tx->emit(sanity_failed => \@failed);
         return $result;
     }
     return;
