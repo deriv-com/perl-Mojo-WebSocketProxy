@@ -14,6 +14,7 @@ use Mojo::JSON qw(encode_json);
 use Future::Utils qw/fmap/;
 use Scalar::Util qw(blessed);
 use Variable::Disposition qw(dispose retain retain_future);
+use JSON::MaybeXS qw(decode_json);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
@@ -68,6 +69,9 @@ sub open_connection {
 
     $c->on(binary => sub {
         my ($d, $bytes) = @_;
+
+        return if eval { decode_json($frame) };
+
         $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
     });
 
