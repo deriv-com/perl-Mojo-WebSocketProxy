@@ -14,6 +14,10 @@ sub register {
 
     die 'No base path found!' unless $config->{base_path};
 
+    my $localizer = (ref($config->{localizer}) // '?') eq 'CODE'
+        ? $config->{localizer}
+        : sub { $_[1] };
+
     my $url_setter;
     $url_setter = delete $config->{url} if $config->{url} and ref($config->{url}) eq 'CODE';
     $app->helper(
@@ -24,12 +28,11 @@ sub register {
         });
     $app->helper(
         wsp_error => sub {
-            shift; # $c
-            my ($msg_type, $code, $message, $details) = @_;
+            my ($c, $msg_type, $code, $message, $details) = @_;
 
             my $error = {
                 code    => $code,
-                message => $message
+                message => $localizer->($c, $message),
             };
             $error->{details} = $details if ref($details) eq 'HASH' && keys %$details;
 

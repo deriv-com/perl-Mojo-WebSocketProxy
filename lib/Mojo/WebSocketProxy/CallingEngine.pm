@@ -5,7 +5,7 @@ use warnings;
 
 use MojoX::JSON::RPC::Client;
 use Guard;
-use JSON;
+use JSON::MaybeXS;
 
 ## VERSION
 

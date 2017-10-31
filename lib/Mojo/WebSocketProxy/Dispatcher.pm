@@ -10,7 +10,7 @@ use Mojo::WebSocketProxy::CallingEngine;
 
 use Class::Method::Modifiers;
 
-use Mojo::JSON qw(encode_json);
+use JSON::MaybeXS qw(encode_json);
 use Future::Utils qw/fmap/;
 use Scalar::Util qw(blessed);
 use Variable::Disposition qw(dispose retain retain_future);
