@@ -85,6 +85,10 @@ Mojolicious::Plugin::WebSocketProxy
         my $self = shift;
         $self->plugin(
             'web_socket_proxy' => {
+                localizer => sub {
+                    my ($c, $error) = @_;
+                    return $translate_somehow->($error) // $error;
+                },
                 actions => [
                     ['json_key', {some_param => 'some_value'}]
                 ],
