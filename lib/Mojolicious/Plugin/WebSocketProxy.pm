@@ -14,9 +14,7 @@ sub register {
 
     die 'No base path found!' unless $config->{base_path};
 
-    my $localizer = (ref($config->{localizer}) // '?') eq 'CODE'
-        ? $config->{localizer}
-        : sub { $_[1] };
+    my $localizer = $config->{localizer} || sub { $_[1] };
 
     my $url_setter;
     $url_setter = delete $config->{url} if $config->{url} and ref($config->{url}) eq 'CODE';
