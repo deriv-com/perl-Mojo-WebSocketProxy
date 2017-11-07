@@ -48,11 +48,6 @@ sub _check_sanity {
 
     if (@failed) {
         my $result = $c->wsp_error('sanity_check', 'SanityCheckFailed', 'Parameters sanity check failed.');
-        if (    $result->{error}
-            and $result->{error}->{code} eq 'SanityCheckFailed')
-        {
-            $req_storage->{args} = {};
-        }
         # emit notification
         $c->tx->emit(sanity_failed => \@failed);
         return $result;
