@@ -73,7 +73,7 @@ You can use Mojolicious stash to store data between messages in one connection.
 
 =head1 Proxy responses
 
-The plugin sends websocket messages to clietn with RPC response data.
+The plugin sends websocket messages to client with RPC response data.
 If RPC reponse looks like this:
 
     {status => 1}
@@ -115,55 +115,70 @@ request-response callbacks, other call parameters.
             ]
         });
 
-=head2 before_forward
+=head2 before_forward (global)
 
     before_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after request is dispatched and before to start preparing RPC call.
+Global hook which will run after request is dispatched and before to start preparing RPC call.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client,
 without forward action to RPC. To call RPC every hook should return empty or undefined value.
 It's good place to some validation or subscribe actions.
 
-=head2 after_forward
+=head2 instead_of_forward (global)
+
+    instead_of_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
+
+Use this hook if you don't want dispatcher to call RPC and want to handle request
+in websocket itself. It's not good practice to use it as global hook because if
+if you return response from sub passed then it will return same response for each
+call.
+
+=head2 before_call (global)
+
+    before_call => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
+
+Global hook which will run just before making rpc call.
+
+=head2 after_forward (global)
 
     after_forward => [sub { my ($c, $result, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after every forwarded RPC call done.
+Global hook which will run after every forwarded RPC call done.
 Or even forward action isn't running.
 It can view or modify result value from 'before_forward' hook.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client.
 
-=head2 after_dispatch
+=head2 after_dispatch (global)
 
     after_dispatch => [sub { my $c = shift; ... }, sub {...}]
 
-Global hooks which will run at the end of request handling.
+Global hook which will run at the end of request handling.
 
 =head2 before_get_rpc_response (global)
 
     before_get_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run when asynchronous RPC call is answered.
+Global hook which will run when asynchronous RPC call is answered.
 
 =head2 after_got_rpc_response (global)
 
     after_got_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run after checked that response exists.
+Global hook which will run after checked that response exists.
 
 =head2 before_send_api_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage, $api_response) = @_; ... }, sub {...}]
 
-Global hooks which will run immediately before send API response.
+Global hook which will run immediately before send API response.
 
 =head2 after_sent_api_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hooks which will run immediately after sent API response.
+Global hook which will run immediately after sent API response.
 
 =head2 base_path
 
@@ -205,7 +220,7 @@ Will send specified parameters from Mojolicious $c->stash.
 You can store RPC response data to Mojolicious stash returning data like this:
 
     rpc_response => {
-        stast => {..} # data to store in Mojolicious stash
+        stash => {..} # data to store in Mojolicious stash
         response_key1 => response_value1, # response to API client
         response_key2 => response_value2
     }
