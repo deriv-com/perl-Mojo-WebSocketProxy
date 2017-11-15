@@ -103,7 +103,7 @@ You can customize ws porxy response using 'response' hook.
 
 #### Sequence Diagram
 
-![Alt text](https://g.gravizo.com/source/ws_proxy?https%3A%2F%2Fraw.githubusercontent.com%2Fraunakkathuria%2Fperl-Mojo-WebSocketProxy%2Fupdate_documentation%2FREADME.md)
+![Alt text](https://g.gravizo.com/source/ws_proxy?https%3A%2F%2Fraw.githubusercontent.com%2Fbinary-com%2Fperl-Mojo-WebSocketProxy%2Fmaster%2FREADME.md)
 <details> 
 <summary></summary>
 ws_proxy
