@@ -4,6 +4,7 @@ Revision history for Perl module Mojo::WebSocketProxy
     Add warning with transaction details failure, if available.
     Add optional localization callback
     Use 'Mojo::JSON' instead of 3rd-party JSON-handling modules
+    Don't bother removing args from req storage after SanityCheckFailed.
 
 0.07      2017-08-29 03:04:42 UTC 2017
     Add binary_frame hook to capture binary uploaded data.
