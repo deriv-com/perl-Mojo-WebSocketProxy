@@ -5,7 +5,7 @@ use warnings;
 
 use MojoX::JSON::RPC::Service;
 use Mojo::Base 'Mojolicious';
-use JSON::XS;
+use Mojo::JSON qw(decode_json encode_json);
 
 sub startup {
     my $self = shift;

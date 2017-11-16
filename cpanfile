@@ -2,8 +2,6 @@ requires 'Class::Method::Modifiers';
 requires 'Data::UUID';
 requires 'Future';
 requires 'Guard';
-requires 'JSON';
-requires 'JSON::XS';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious';
 requires 'Scalar::Util';

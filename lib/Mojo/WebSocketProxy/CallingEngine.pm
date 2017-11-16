@@ -3,9 +3,9 @@ package Mojo::WebSocketProxy::CallingEngine;
 use strict;
 use warnings;
 
+use Mojo::JSON qw(encode_json);
 use MojoX::JSON::RPC::Client;
 use Guard;
-use JSON;
 
 ## VERSION
 

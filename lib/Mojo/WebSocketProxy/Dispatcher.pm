@@ -4,13 +4,13 @@ use strict;
 use warnings;
 
 use Mojo::Base 'Mojolicious::Controller';
+use Mojo::JSON qw(encode_json);
 use Mojo::WebSocketProxy::Parser;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::CallingEngine;
 
 use Class::Method::Modifiers;
 
-use Mojo::JSON qw(encode_json);
 use Future::Utils qw/fmap/;
 use Scalar::Util qw(blessed);
 use Variable::Disposition qw(dispose retain retain_future);

@@ -3,8 +3,6 @@
 use strict;
 use warnings;
 
-use JSON;
-
 # Mojolicious app for testing
 package WebsocketProxy;
 
@@ -48,6 +46,7 @@ use Test::More;
 use Test::Mojo;
 use Test::MockModule;
 use Test::MockObject;
+use Mojo::JSON qw(decode_json encode_json);
 
 # Mocking RPC client to catch RPC calls
 my ($url, $call_params, $fake_rpc_response, $fake_rpc_client, $rpc_client_mock, $rpc_response);
