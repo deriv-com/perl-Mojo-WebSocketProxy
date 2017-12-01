@@ -5,7 +5,7 @@ requires 'Guard';
 requires 'JSON';
 requires 'JSON::XS';
 requires 'MojoX::JSON::RPC';
-requires 'Mojolicious', '==7.29';
+requires 'Mojolicious', '= 7.29';
 requires 'Scalar::Util';
 requires 'Variable::Disposition';
 requires 'perl', '5.014';
