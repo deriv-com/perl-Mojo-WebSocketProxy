@@ -4,8 +4,7 @@ use warnings;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use JSON::MaybeXS qw(decode_json);
-#use JSON::XS;
+use JSON::XS;
 use Mojo::IOLoop;
 use Future;
 
