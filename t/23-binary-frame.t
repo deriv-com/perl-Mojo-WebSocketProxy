@@ -4,8 +4,7 @@ use warnings;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use Encode;
-use JSON::MaybeXS;
+use JSON::XS;
 use Mojo::IOLoop;
 use Future;
 use Path::Tiny;
@@ -37,7 +36,7 @@ test_wsp {
     my $expected = path('t/data/tux.png')->slurp;
     $t->websocket_ok('/api' => {});
     $t->send_ok({binary => pack 'Na*', length $expected, $expected})->message_ok;
-    is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{payload}, $expected);
+    is decode_json($t->message->[1])->{payload}, $expected;
 } 't::FrontEnd';
 
 done_testing;
