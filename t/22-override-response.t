@@ -36,8 +36,8 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
-    is JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{my_response}, 'success-reply';
-    is JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{additional}, 'details';
+    is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{my_response}, 'success-reply');
+    is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{additional}, 'details');
 } 't::FrontEnd';
 
 done_testing;

@@ -37,7 +37,7 @@ subtest "trigger timeout" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'Timeout';
+        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'Timeout');
     } 't::FrontEnd';
 };
 
