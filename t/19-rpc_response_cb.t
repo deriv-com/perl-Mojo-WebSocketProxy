@@ -4,7 +4,8 @@ use warnings;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use JSON::XS;
+use Encode;
+use JSON::MaybeXS;
 use Mojo::IOLoop;
 use Future;
 
@@ -29,7 +30,7 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
-    is decode_json($t->message->[1])->{rpc_response_cb}, 'ok';
+    is JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{rpc_response_cb}, 'ok';
 } 't::FrontEnd';
 
 done_testing;

@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 
-use JSON;
+use Encode;
+use JSON::MaybeXS;
 
 # Mojolicious app for testing
 package WebsocketProxy;
@@ -83,7 +84,7 @@ my $res;
 $t->websocket_ok('/api' => {});
 
 $t = $t->send_ok({json => {some_action => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 
 is $url, 'http://rpc-host.com:8080/some_action', 'It should use url + method';
 is $call_params->{method}, 'some_action', 'It should use method from actions';
@@ -98,7 +99,7 @@ is_deeply $res,
     'It should return formating response';
 
 $t = $t->send_ok({json => {not_exists_action => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is_deeply $res,
     {
     'error' => {
@@ -111,7 +112,7 @@ is_deeply $res,
     'It should return error response if action does not exist';
 
 $t = $t->send_ok({json => 'not_json'})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is_deeply $res,
     {
     'error' => {
@@ -125,7 +126,7 @@ is_deeply $res,
 
 
 $t = $t->send_ok({json => {some_action1 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 ok $res->{some_action1}, 'Should return success';
 ok $res->{debug},        'Should add debug param';
 
@@ -133,7 +134,7 @@ ok $res->{debug},        'Should add debug param';
 $authorized = '';
 $url        = '';
 $t          = $t->send_ok({json => {some_action1 => 1}})->message_ok;
-$res        = decode_json($t->message->[1]);
+$res        = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is $res->{error}->{code}, 'AuthError', 'It should return before_forward response';
 ok !$url, 'It should not call RPC if before_forward returns anything';
 
@@ -147,7 +148,7 @@ sub instead_of_forward {
 }
 
 $t = $t->send_ok({json => {some_action2 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 ok $res->{some_action2}, 'Should return success';
 is $res->{msg_type}, 'some_action2', 'Should use custom msg_type';
 
@@ -156,7 +157,7 @@ sub some_action3 {
 }
 
 $t = $t->send_ok({json => {some_action3 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is $res->{custom_result}, 1, 'Should return success';
 ok $res->{debug}, 'Should add debug param';
 
@@ -166,7 +167,7 @@ sub some_action4 {
 }
 
 $t = $t->send_ok({json => {some_action4 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is $res->{custom_result}, 2, 'Should return success';
 ok $res->{debug}, 'Should add debug param';
 
@@ -177,7 +178,7 @@ sub some_action51 {
 }
 
 $t = $t->send_ok({json => {some_action5 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is $res->{debug}, 3, 'You can use request storage to share data between hooks';
 
 $rpc_response = {
@@ -198,7 +199,7 @@ sub some_action7 {
 
 $rpc_response = {status => 1};
 $t = $t->send_ok({json => {some_action7 => 1}})->message_ok;
-$res = decode_json($t->message->[1]);
+$res = JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]));
 is $res->{my_response}->{status}, 1, 'It should return custom answer';
 is $res->{my_response}->{status}, 1, 'It should return custom answer';
 
