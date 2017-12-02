@@ -5,13 +5,13 @@ requires 'Guard';
 requires 'JSON';
 requires 'JSON::XS';
 requires 'MojoX::JSON::RPC';
-requires 'Mojolicious', '>= 7.29, < 7.30';
+requires 'Mojolicious', '== 7.29';
 requires 'Scalar::Util';
 requires 'Variable::Disposition';
 requires 'perl', '5.014';
 
 on configure => sub {
-    requires 'ExtUtils::MakeMaker', '6.64';
+    requires 'ExtUtils::MakeMaker';
 };
 
 on build => sub {
