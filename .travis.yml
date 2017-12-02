@@ -20,4 +20,6 @@ install:
 
 script:
    - dzil smoke --release --author && dzil cover -test -report codecov && dzil xtest
+after_failure:
+   - cat /home/travis/.perl-cpm/build.log
 
