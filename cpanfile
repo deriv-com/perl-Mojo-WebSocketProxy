@@ -10,7 +10,7 @@ requires 'Variable::Disposition';
 requires 'perl', '5.014';
 
 on configure => sub {
-    requires 'ExtUtils::MakeMaker';
+    requires 'ExtUtils::MakeMaker', '7.1101';
 };
 
 on build => sub {
