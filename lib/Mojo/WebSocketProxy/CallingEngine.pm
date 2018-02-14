@@ -164,7 +164,7 @@ sub call_rpc {
                 return;
             }
 
-            $api_response = &$rpc_response_cb($res->result);
+            $api_response = $rpc_response_cb->($res->result);
 
             return unless $api_response;
 
