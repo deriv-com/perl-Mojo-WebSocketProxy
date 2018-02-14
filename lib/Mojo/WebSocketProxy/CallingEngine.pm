@@ -101,6 +101,7 @@ sub error_api_response {
 my $request_number = 0;
 
 sub call_rpc {
+    my $self        = shift;    ## unused
     my $c           = shift;
     my $req_storage = shift;
 

@@ -214,7 +214,7 @@ sub forward {
         ];
     }
 
-    Mojo::WebSocketProxy::CallingEngine::call_rpc($c, $req_storage);
+    Mojo::WebSocketProxy::CallingEngine->call_rpc($c, $req_storage);
     return;
 }
 
