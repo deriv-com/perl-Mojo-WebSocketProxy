@@ -73,7 +73,7 @@ You can use Mojolicious stash to store data between messages in one connection.
 
 =head1 Proxy responses
 
-The plugin sends websocket messages to clietn with RPC response data.
+The plugin sends websocket messages to client with RPC response data.
 If RPC reponse looks like this:
 
     {status => 1}
@@ -96,7 +96,7 @@ Plugin returns common response like this:
         msg_type  => $msg_type,
     }
 
-You can customize ws porxy response using 'response' hook.
+You can customize ws proxy response using 'response' hook.
 
 =head1 Plugin parameters
 
