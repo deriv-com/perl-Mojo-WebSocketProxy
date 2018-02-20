@@ -104,7 +104,7 @@ The plugin understands the following parameters.
 
 =head2 actions
 
-A pointer to array of action details, which contain stash_params,
+A reference to array of action details, which contain stash_params,
 request-response callbacks, other call parameters.
 
     $self->plugin(
