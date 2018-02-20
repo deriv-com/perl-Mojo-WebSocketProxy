@@ -1,4 +1,5 @@
 package Mojo::WebSocketProxy::CallingEngine;
+# TODO(leonerd): Maybe rename "CallingEngine" to "Backend::JSON_RPC"
 
 use strict;
 use warnings;

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Mojo::Base 'Mojolicious::Plugin';
+use Mojo::WebSocketProxy::CallingEngine;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 
@@ -56,6 +57,9 @@ sub register {
     } else {
         die 'No actions found!';
     }
+
+    # TODO(leonerd): ->new an instance
+    $dispatcher_config->add_backend("Mojo::WebSocketProxy::CallingEngine");
 
     $app->helper(
         wsp_config => sub {

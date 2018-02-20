@@ -6,7 +6,6 @@ use warnings;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::WebSocketProxy::Parser;
 use Mojo::WebSocketProxy::Config;
-use Mojo::WebSocketProxy::CallingEngine;
 
 use Class::Method::Modifiers;
 
@@ -214,7 +213,7 @@ sub forward {
         ];
     }
 
-    Mojo::WebSocketProxy::CallingEngine->call_rpc($c, $req_storage);
+    $config->{backend}->call_rpc($c, $req_storage);
     return;
 }
 

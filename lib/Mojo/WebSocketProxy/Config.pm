@@ -32,6 +32,12 @@ sub add_action {
     return;
 }
 
+sub add_backend {
+    my ($self, $backend) = @_;
+    # TODO(leonerd): Add name parameter, store multiple
+    $self->{config}{backend} = $backend;
+}
+
 1;
 
 __END__
