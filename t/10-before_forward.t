@@ -9,6 +9,8 @@ use JSON::MaybeXS;
 use Mojo::IOLoop;
 use Future;
 
+my $JSON = JSON::MaybeXS->new;
+
 subtest "w/o before-forward" => sub {
     package t::FrontEnd1 {
         use base 'Mojolicious';
@@ -31,7 +33,7 @@ subtest "w/o before-forward" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
     } 't::FrontEnd1';
 };
 
@@ -58,7 +60,7 @@ subtest "simple before-forward (allows forward)" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
     } 't::FrontEnd2';
 };
 
@@ -85,7 +87,7 @@ subtest "simple before-forward (prohibits forward)" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
     } 't::FrontEnd3';
 };
 
@@ -112,7 +114,7 @@ subtest "future-based before-forward (immediate success)" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{success}, 'success-reply');
     } 't::FrontEnd4';
 };
 
@@ -139,7 +141,7 @@ subtest "future-based before-forward (immediate error)" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
     } 't::FrontEnd5';
 };
 
@@ -172,7 +174,7 @@ subtest "future-based before-forward (delayed fail)" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
+        is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{"non-authorized"}, 'by-some-reason');
     } 't::FrontEnd6';
 };
 

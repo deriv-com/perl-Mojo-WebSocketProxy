@@ -9,6 +9,8 @@ use JSON::MaybeXS;
 use Mojo::IOLoop;
 use Future;
 
+my $JSON = JSON::MaybeXS->new;
+
 package t::FrontEnd {
     use base 'Mojolicious';
 
@@ -30,7 +32,7 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {non_existing_action => 1}})->message_ok;
-    is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'UnrecognisedRequest');
+    is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'UnrecognisedRequest');
 } 't::FrontEnd';
 
 done_testing;

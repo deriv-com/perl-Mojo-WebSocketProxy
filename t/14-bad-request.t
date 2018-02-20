@@ -9,6 +9,8 @@ use JSON::MaybeXS;
 use Mojo::IOLoop;
 use Future;
 
+my $JSON = JSON::MaybeXS->new;
+
 package t::FrontEnd {
     use base 'Mojolicious';
     # does not matter
@@ -30,7 +32,7 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => 'invalid'})->message_ok;
-    is(JSON::MaybeXS->new->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'BadRequest');
+    is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{"error"}->{"code"}, 'BadRequest');
 } 't::FrontEnd';
 
 done_testing;
