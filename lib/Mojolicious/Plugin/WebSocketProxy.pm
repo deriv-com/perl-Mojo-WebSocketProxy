@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 use Mojo::Base 'Mojolicious::Plugin';
-use Mojo::WebSocketProxy::CallingEngine;
+use Mojo::WebSocketProxy::Backend;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 
@@ -58,13 +58,13 @@ sub register {
         die 'No actions found!';
     }
 
-    $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::CallingEngine->new(
+    $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::Backend->new(
         url => delete $config->{url},
     ));
 
     if(my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
-            $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::CallingEngine->new(
+            $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->new(
                 $backend_configs->{$name}
             ));
         }
@@ -145,7 +145,7 @@ See L<Mojo::WebSocketProxy> for details on how to use hooks and parameters.
 
 L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
-L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Backend>,
 L<Mojo::WebSocketProxy::Dispatcher>
 L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Parser>

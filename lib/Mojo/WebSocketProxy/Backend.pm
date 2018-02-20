@@ -1,5 +1,5 @@
-package Mojo::WebSocketProxy::CallingEngine;
-# TODO(leonerd): Maybe rename "CallingEngine" to "Backend::JSON_RPC"
+package Mojo::WebSocketProxy::Backend;
+# TODO(leonerd): Split out JSON-RPC-specific parts into a subclass
 
 use strict;
 use warnings;
@@ -190,7 +190,7 @@ __END__
 
 =head1 NAME
 
-Mojo::WebSocketProxy::CallingEngine
+Mojo::WebSocketProxy::Backend
 
 =head1 DESCRIPTION
 
@@ -240,7 +240,6 @@ Make RPC call.
 
 L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>
-L<Mojo::WebSocketProxy::CallingEngine>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Parser>

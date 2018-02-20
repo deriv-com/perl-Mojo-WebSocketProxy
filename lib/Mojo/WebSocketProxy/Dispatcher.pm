@@ -269,7 +269,7 @@ Or if there is instead_of_forward action.
 
 L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
-L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Backend>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Parser>
