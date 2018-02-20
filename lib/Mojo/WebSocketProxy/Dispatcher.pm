@@ -203,9 +203,6 @@ sub forward {
 
     my $config = $c->wsp_config->{config};
 
-    $req_storage->{url} ||= $config->{url};
-    die 'No url found' unless $req_storage->{url};
-
     for my $hook (qw/ before_call before_get_rpc_response after_got_rpc_response /) {
         $req_storage->{$hook} = [
             grep { $_ } (ref $config->{$hook} eq 'ARRAY'      ? @{$config->{$hook}}      : $config->{$hook}),

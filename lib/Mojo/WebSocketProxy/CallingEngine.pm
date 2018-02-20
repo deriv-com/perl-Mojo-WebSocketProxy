@@ -4,10 +4,14 @@ package Mojo::WebSocketProxy::CallingEngine;
 use strict;
 use warnings;
 
+use Mojo::Base -base;
+
 use MojoX::JSON::RPC::Client;
 use Guard;
 
 ## VERSION
+
+has 'url';
 
 sub make_call_params {
     my ($c, $req_storage) = @_;
@@ -106,9 +110,13 @@ sub call_rpc {
     my $c           = shift;
     my $req_storage = shift;
 
+    my $url = $req_storage->{url} // $self->url;
+    die 'No url found' unless $url;
+
+    $url .= $req_storage->{method};
+
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
-    my $url      = ($req_storage->{url} . $req_storage->{method});
 
     $req_storage->{call_params} ||= {};
 

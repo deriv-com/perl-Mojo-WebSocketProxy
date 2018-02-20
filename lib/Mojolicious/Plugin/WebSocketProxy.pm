@@ -58,8 +58,9 @@ sub register {
         die 'No actions found!';
     }
 
-    # TODO(leonerd): ->new an instance
-    $dispatcher_config->add_backend("Mojo::WebSocketProxy::CallingEngine");
+    $dispatcher_config->add_backend(Mojo::WebSocketProxy::CallingEngine->new(
+        url => delete $config->{url},
+    ));
 
     $app->helper(
         wsp_config => sub {
