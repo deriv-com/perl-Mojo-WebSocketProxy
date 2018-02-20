@@ -6,11 +6,9 @@ local $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} = 1;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use JSON::MaybeXS;
+use JSON::MaybeUTF8 ':v1';
 use Mojo::IOLoop;
 use Future;
-
-my $JSON = JSON::MaybeXS->new(utf8 => 1);
 
 subtest "trigger timeout" => sub {
     package t::FrontEnd {
@@ -38,7 +36,7 @@ subtest "trigger timeout" => sub {
         my ($t) = @_;
         $t->websocket_ok('/api' => {});
         $t->send_ok({json => {success => 1}})->message_ok;
-        is($JSON->decode($t->message->[1])->{"error"}->{"code"}, 'Timeout');
+        is(decode_json_utf8($t->message->[1])->{"error"}->{"code"}, 'Timeout');
     } 't::FrontEnd';
 };
 
