@@ -36,6 +36,7 @@ sub add_action {
 sub add_backend {
     my ($self, $name, $backend) = @_;
     $self->{backends}{$name} = $backend;
+    return;
 }
 
 1;
@@ -55,6 +56,8 @@ This module using for store server configuration in memory.
 =head2 init
 
 =head2 add_action
+
+=head2 add_backend
 
 =head1 SEE ALSO
 
