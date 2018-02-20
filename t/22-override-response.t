@@ -4,12 +4,11 @@ use warnings;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use Encode;
 use JSON::MaybeXS;
 use Mojo::IOLoop;
 use Future;
 
-my $JSON = JSON::MaybeXS->new;
+my $JSON = JSON::MaybeXS->new(utf8 => 1);
 
 package t::FrontEnd {
     use base 'Mojolicious';
@@ -38,8 +37,8 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
-    is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{my_response}, 'success-reply');
-    is($JSON->decode(Encode::decode_utf8($t->message->[1]))->{additional}, 'details');
+    is($JSON->decode($t->message->[1])->{my_response}, 'success-reply');
+    is($JSON->decode($t->message->[1])->{additional}, 'details');
 } 't::FrontEnd';
 
 done_testing;
