@@ -115,6 +115,19 @@ request-response callbacks, other call parameters.
             ]
         });
 
+=head2 backends
+
+An optional reference to a hash of alternate backends to pick for certain RPC
+calls. Hash keys are names of backends, and values are themselves hash
+references containing backend parameters. Currently only the C<url> key is
+supported.
+
+    backends => {
+        server2 => {url => "http://server2.rpc-host:8080/"},
+    }
+
+Alternate backends are selected by using the C<backend> action option.
+
 =head2 before_forward
 
     before_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
@@ -230,6 +243,13 @@ Hook which will run if RPC returns value with error key, e.g.
 
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
+
+=head2 backend
+
+Selects an alternative backend to forward requests onto, rather than the
+default.
+
+    backend => "server2"
 
 =head1 SEE ALSO
 

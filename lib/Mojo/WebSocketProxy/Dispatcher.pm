@@ -210,7 +210,12 @@ sub forward {
         ];
     }
 
-    $config->{backend}->call_rpc($c, $req_storage);
+    my $backend_name = $req_storage->{backend} // "default";
+    my $backend = $c->wsp_config->{backends}{$backend_name} or
+        die "Cannot dispatch request - no backend named '$backend_name'";
+
+    $backend->call_rpc($c, $req_storage);
+
     return;
 }
 

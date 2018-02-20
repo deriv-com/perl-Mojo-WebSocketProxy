@@ -10,8 +10,9 @@ use Mojo::Base -base;
 sub init {
     my ($self, $in_config) = @_;
 
-    $self->{config}  = {};
-    $self->{actions} = {};
+    $self->{config}   = {};
+    $self->{actions}  = {};
+    $self->{backends} = {};
 
     die 'Wrong parameter' if $in_config->{opened_connection} && ref($in_config->{opened_connection}) ne 'CODE';
     die 'Wrong parameter' if $in_config->{finish_connection} && ref($in_config->{finish_connection}) ne 'CODE';
@@ -33,9 +34,8 @@ sub add_action {
 }
 
 sub add_backend {
-    my ($self, $backend) = @_;
-    # TODO(leonerd): Add name parameter, store multiple
-    $self->{config}{backend} = $backend;
+    my ($self, $name, $backend) = @_;
+    $self->{backends}{$name} = $backend;
 }
 
 1;
