@@ -17,14 +17,14 @@ use Variable::Disposition qw(dispose retain retain_future);
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
 ## VERSION
-my $json = JSON::MaybeXS->new;
+my $JSON = JSON::MaybeXS->new;
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
     my $config = $c->wsp_config->{config};
 
     my $max_response_size = $config->{max_response_size};
-    if ($max_response_size && length($json->encode($api_response)) > $max_response_size) {
+    if ($max_response_size && length($JSON->encode($api_response)) > $max_response_size) {
         $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
     }
 
@@ -129,7 +129,7 @@ sub on_message {
     my $timer_id = Mojo::IOLoop->timer(
         TIMEOUT,
         sub {
-            $c->app->log->warn("$0 ($$) timeout, args: " . $json->encode($args));
+            $c->app->log->warn("$0 ($$) timeout, args: " . $JSON->encode($args));
             $result = $c->wsp_error('error', 'Timeout', 'Timeout');
             $f->fail($result);
         });
