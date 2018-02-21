@@ -4,10 +4,8 @@ use warnings;
 use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
-use JSON::MaybeXS;
+use JSON::MaybeUTF8 ':v1';
 use Mojo::IOLoop;
-
-my $JSON = JSON::MaybeXS->new(utf8 => 1);
 
 package t::FrontEnd {
     use base 'Mojolicious';
@@ -38,11 +36,11 @@ test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
-    is($JSON->decode($t->message->[1])->{success}, 'success-reply');
+    is(decode_json_utf8($t->message->[1])->{success}, 'success-reply');
 
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {faraway => 1}})->message_ok;
-    is($JSON->decode($t->message->[1])->{faraway}, 'faraway-reply');
+    is(decode_json_utf8($t->message->[1])->{faraway}, 'faraway-reply');
 } 't::FrontEnd', 't::SampleRPC2';
 
 done_testing;
@@ -51,7 +49,7 @@ package t::SampleRPC2;
 
 use MojoX::JSON::RPC::Service;
 use Mojo::Base 'Mojolicious';
-use JSON::MaybeXS;
+use JSON::MaybeUTF8 ':v1';
 
 sub startup {
     my $self = shift;
@@ -60,7 +58,7 @@ sub startup {
             return 'success-reply';
         }),
         '/rpc/echo' => MojoX::JSON::RPC::Service->new->register('echo', sub {
-            $self->log->debug('$_[0]->{args} = ' . $JSON->encode($_[0]->{args}));
+            $self->log->debug('$_[0]->{args} = ' . encode_json_utf8($_[0]->{args}));
             return $_[0]->{args};
         }),
         '/rpc2/faraway' => MojoX::JSON::RPC::Service->new->register('faraway', sub {
