@@ -3,6 +3,7 @@ requires 'Data::UUID';
 requires 'Future';
 requires 'Guard';
 requires 'JSON::MaybeXS';
+requires 'JSON::MaybeUTF8';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious', '== 7.29';
 requires 'Scalar::Util';
