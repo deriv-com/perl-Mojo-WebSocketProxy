@@ -10,8 +10,9 @@ use Mojo::Base -base;
 sub init {
     my ($self, $in_config) = @_;
 
-    $self->{config}  = {};
-    $self->{actions} = {};
+    $self->{config}   = {};
+    $self->{actions}  = {};
+    $self->{backends} = {};
 
     die 'Wrong parameter' if $in_config->{opened_connection} && ref($in_config->{opened_connection}) ne 'CODE';
     die 'Wrong parameter' if $in_config->{finish_connection} && ref($in_config->{finish_connection}) ne 'CODE';
@@ -29,6 +30,12 @@ sub add_action {
     $self->{actions}->{$name} ||= $options;
     $self->{actions}->{$name}->{order} = $order;
     $self->{actions}->{$name}->{name}  = $name;
+    return;
+}
+
+sub add_backend {
+    my ($self, $name, $backend) = @_;
+    $self->{backends}{$name} = $backend;
     return;
 }
 
@@ -50,12 +57,14 @@ This module using for store server configuration in memory.
 
 =head2 add_action
 
+=head2 add_backend
+
 =head1 SEE ALSO
 
 
 L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
-L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Backend>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Parser>

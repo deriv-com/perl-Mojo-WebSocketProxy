@@ -6,7 +6,6 @@ use warnings;
 use Mojo::Base 'Mojolicious::Controller';
 use Mojo::WebSocketProxy::Parser;
 use Mojo::WebSocketProxy::Config;
-use Mojo::WebSocketProxy::CallingEngine;
 
 use Class::Method::Modifiers;
 
@@ -204,9 +203,6 @@ sub forward {
 
     my $config = $c->wsp_config->{config};
 
-    $req_storage->{url} ||= $config->{url};
-    die 'No url found' unless $req_storage->{url};
-
     for my $hook (qw/ before_call before_get_rpc_response after_got_rpc_response /) {
         $req_storage->{$hook} = [
             grep { $_ } (ref $config->{$hook} eq 'ARRAY'      ? @{$config->{$hook}}      : $config->{$hook}),
@@ -214,7 +210,12 @@ sub forward {
         ];
     }
 
-    Mojo::WebSocketProxy::CallingEngine::call_rpc($c, $req_storage);
+    my $backend_name = $req_storage->{backend} // "default";
+    my $backend = $c->wsp_config->{backends}{$backend_name} or
+        die "Cannot dispatch request - no backend named '$backend_name'";
+
+    $backend->call_rpc($c, $req_storage);
+
     return;
 }
 
@@ -268,7 +269,7 @@ Or if there is instead_of_forward action.
 
 L<Mojolicious::Plugin::WebSocketProxy>,
 L<Mojo::WebSocketProxy>,
-L<Mojo::WebSocketProxy::CallingEngine>,
+L<Mojo::WebSocketProxy::Backend>,
 L<Mojo::WebSocketProxy::Dispatcher>,
 L<Mojo::WebSocketProxy::Config>
 L<Mojo::WebSocketProxy::Parser>
