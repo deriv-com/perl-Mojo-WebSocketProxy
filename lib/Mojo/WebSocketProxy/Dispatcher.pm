@@ -118,13 +118,15 @@ sub on_message {
     });
 
     return Future->wait_any(
-        Future::Mojo->new_timeout(TIMEOUT),
-        $f->then(sub {
-            my ($result) = @_;
-            $c->send({json => $result}, $req_storage) if $result;
-            return $c->_run_hooks($config->{after_dispatch} || []);
-        })
-    )->retain;
+        Future::Mojo->new_timeout(TIMEOUT)->else(sub {
+            return Future->done($c->wsp_error('error', Timeout => 'Timeout'))
+        }),
+        $f
+    )->then(sub {
+        my ($result) = @_;
+        $c->send({json => $result}, $req_storage) if $result;
+        return $c->_run_hooks($config->{after_dispatch} || []);
+    })->retain;
 }
 
 sub before_forward {
