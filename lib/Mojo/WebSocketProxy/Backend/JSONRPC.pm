@@ -3,12 +3,15 @@ package Mojo::WebSocketProxy::Backend::JSONRPC;
 use strict;
 use warnings;
 
-no indirect;
-
 use parent qw(Mojo::WebSocketProxy::Backend);
 
+use feature qw(state);
+
+no indirect;
+
+use curry;
+
 use MojoX::JSON::RPC::Client;
-use Scope::Guard qw(guard);
 
 ## VERSION
 
@@ -18,6 +21,7 @@ my $request_number = 0;
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
+    state $client  = MojoX::JSON::RPC::Client->new;
 
     my $url = $req_storage->{url} // $self->url;
     die 'No url found' unless $url;
@@ -35,7 +39,6 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
 
-    my $client  = MojoX::JSON::RPC::Client->new;
     my $callobj = {
         # enough for short-term uniqueness
         id     => join('_', $$, $request_number++, time, (0+[])),
@@ -47,18 +50,14 @@ sub call_rpc {
 
     $client->call(
         $url, $callobj,
-        sub {
+        $client->$curry::weak(sub {
+            my $client = shift;
             my $res = pop;
 
             $_->($c, $req_storage) for @$before_get_rpc_response_hook;
 
             # unconditionally stop any further processing if client is already disconnected
             return unless $c->tx;
-
-            my $mem_guard = guard {
-                undef $client;
-                undef $req_storage;
-            };
 
             my $api_response;
             if (!$res) {

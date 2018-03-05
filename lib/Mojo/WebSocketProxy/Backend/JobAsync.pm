@@ -9,7 +9,6 @@ no indirect;
 
 use IO::Async::Loop::Mojo;
 use Job::Async;
-use Scope::Guard qw(guard);
 
 use Log::Any qw($log);
 
@@ -72,10 +71,6 @@ sub call_rpc {
 
         # unconditionally stop any further processing if client is already disconnected
         return Future->done unless $c and $c->tx;
-
-        my $mem_guard = guard {
-            undef $req_storage;
-        };
 
         $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 

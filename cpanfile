@@ -3,7 +3,7 @@ requires 'Data::UUID';
 requires 'Future', '>= 0.36';
 requires 'Future::Mojo';
 requires 'indirect';
-requires 'Scope::Guard';
+requires 'curry', '>= 1.001';
 requires 'JSON::MaybeUTF8';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious', '== 7.29';
