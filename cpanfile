@@ -1,13 +1,12 @@
 requires 'Class::Method::Modifiers';
 requires 'Data::UUID';
-requires 'Future';
+requires 'Future', '>= 0.36';
 requires 'indirect';
 requires 'Scope::Guard';
 requires 'JSON::MaybeUTF8';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious', '== 7.29';
 requires 'Scalar::Util';
-requires 'Variable::Disposition';
 requires 'perl', '5.014';
 
 suggests 'Job::Async', 0;

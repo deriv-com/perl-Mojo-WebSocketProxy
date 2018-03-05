@@ -12,7 +12,6 @@ use Class::Method::Modifiers;
 use JSON::MaybeXS;
 use Future::Utils qw/fmap/;
 use Scalar::Util qw(blessed);
-use Variable::Disposition qw(dispose retain retain_future);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
@@ -135,13 +134,12 @@ sub on_message {
         });
 
     # post-process pipeline, always response
-    retain_future(
-        $f->followed_by(
-            sub {
-                Mojo::IOLoop->remove($timer_id);
-                $c->send({json => $result}, $req_storage) if $result;
-                return $c->_run_hooks($config->{after_dispatch} || []);
-            }));
+    $f->followed_by(
+        sub {
+            Mojo::IOLoop->remove($timer_id);
+            $c->send({json => $result}, $req_storage) if $result;
+            return $c->_run_hooks($config->{after_dispatch} || []);
+        })->retain;
 
     return;
 }
