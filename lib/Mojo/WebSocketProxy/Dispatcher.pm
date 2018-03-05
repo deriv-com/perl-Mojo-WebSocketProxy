@@ -106,28 +106,25 @@ sub on_message {
         # Note that we completely ignore the return value of ->before_forward here.
         return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
         return $c->forward($req_storage);
-    })->else(sub {
-        $result = shift;
-        # wait what
-        Future->fail;
     })->then(sub {
-        $result = shift;
+        my $result = shift;
         return $c->after_forward(
             $result,
             $req_storage
-        )->then(sub {
-            Future->done;
-        });
+        )->transform(done => sub { $result })
+    }, sub {
+        my $result = shift;
+        Future->done($result);
     });
 
     return Future->wait_any(
         Future::Mojo->new_timeout(TIMEOUT),
         # post-process pipeline, always response
-        $f->followed_by(
-            sub {
-                $c->send({json => $result}, $req_storage) if $result;
-                return $c->_run_hooks($config->{after_dispatch} || []);
-            })
+        $f->then(sub {
+            my ($result) = @_;
+            $c->send({json => $result}, $req_storage) if $result;
+            return $c->_run_hooks($config->{after_dispatch} || []);
+        })
     )->retain;
 }
 
