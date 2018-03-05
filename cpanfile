@@ -1,6 +1,7 @@
 requires 'Class::Method::Modifiers';
 requires 'Data::UUID';
 requires 'Future', '>= 0.36';
+requires 'Future::Mojo';
 requires 'indirect';
 requires 'Scope::Guard';
 requires 'JSON::MaybeUTF8';
