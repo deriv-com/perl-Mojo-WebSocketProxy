@@ -100,14 +100,13 @@ sub on_message {
 
         $c->before_forward(
             $req_storage
-        )->then(sub {
-            my $next =
-                $req_storage->{instead_of_forward}
-                ? sub { $req_storage->{instead_of_forward}->($c, $req_storage) }
-                : sub { $c->forward($req_storage) };
-            Future->done($next->());
+        )->transform(done => sub {
+            # Note that we completely ignore the return value of ->before_forward here.
+            return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
+            return $c->forward($req_storage);
         })->else(sub {
             $result = shift;
+            # wait what
             Future->fail;
         });
     })->then(sub {
