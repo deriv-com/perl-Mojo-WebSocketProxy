@@ -10,6 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeXS;
+use Future::Mojo;
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
 
@@ -126,24 +127,15 @@ sub on_message {
         });
     });
 
-    # timeout guard
-    my $timer_id = Mojo::IOLoop->timer(
-        TIMEOUT,
-        sub {
-            $c->app->log->warn("$0 ($$) timeout, args: " . $JSON->encode($args));
-            $result = $c->wsp_error('error', 'Timeout', 'Timeout');
-            $f->fail($result);
-        });
-
-    # post-process pipeline, always response
-    $f->followed_by(
-        sub {
-            Mojo::IOLoop->remove($timer_id);
-            $c->send({json => $result}, $req_storage) if $result;
-            return $c->_run_hooks($config->{after_dispatch} || []);
-        })->retain;
-
-    return;
+    return Future->wait_any(
+        Future::Mojo->new_timeout(TIMEOUT),
+        # post-process pipeline, always response
+        $f->followed_by(
+            sub {
+                $c->send({json => $result}, $req_storage) if $result;
+                return $c->_run_hooks($config->{after_dispatch} || []);
+            })
+    )->retain;
 }
 
 sub before_forward {
