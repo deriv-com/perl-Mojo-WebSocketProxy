@@ -119,7 +119,6 @@ sub on_message {
 
     return Future->wait_any(
         Future::Mojo->new_timeout(TIMEOUT),
-        # post-process pipeline, always response
         $f->then(sub {
             my ($result) = @_;
             $c->send({json => $result}, $req_storage) if $result;
