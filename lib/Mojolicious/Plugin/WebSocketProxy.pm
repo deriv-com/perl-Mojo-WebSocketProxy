@@ -66,7 +66,7 @@ sub register {
     if(my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
             my %args = %{$backend_configs->{$name}};
-            my $type = delete($args{$type}) // 'jsonrpc';
+            my $type = delete($args{type}) // 'jsonrpc';
             $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->backend_instance(
                 $type => %args
             ));
