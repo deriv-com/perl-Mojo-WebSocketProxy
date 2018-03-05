@@ -87,42 +87,35 @@ sub on_message {
     my $result_f = $result ? Future->fail($result) : Future->done;
 
     # main processing pipeline
-    my $f = $result_f->then(
-        sub {
-            my $action = $c->dispatch($args);
-            Future->fail($result = $c->wsp_error('error', 'UnrecognisedRequest', 'Unrecognised request'))
-                unless $action;
-            Future->done($action);
+    my $f = $result_f->then(sub {
+        if(my $action = $c->dispatch($args)) {
+            return Future->done($action);
         }
-        )->then(
-        sub {
-            my $action = shift;
+        return Future->fail($result = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request'));
+    )->then(sub {
+        my $action = shift;
 
-            %$req_storage = (%$req_storage, %$action);
-            $req_storage->{method} = $req_storage->{name};
+        @{$req_storage}{keys %$action} = values %$action;
+        $req_storage->{method} = $req_storage->{name};
 
-            my $f = $c->before_forward($req_storage)->then(
-                sub {
-                    my $next =
-                        $req_storage->{instead_of_forward}
-                        ? sub { $req_storage->{instead_of_forward}->($c, $req_storage) }
-                        : sub { $c->forward($req_storage) };
-                    Future->done($next->());
-                }
-                )->else(
-                sub {
-                    $result = shift;
-                    Future->fail;
-                });
-        }
-        )->then(
-        sub {
+        $c->before_forward(
+            $req_storage
+        )->then(sub {
+            my $next =
+                $req_storage->{instead_of_forward}
+                ? sub { $req_storage->{instead_of_forward}->($c, $req_storage) }
+                : sub { $c->forward($req_storage) };
+            Future->done($next->());
+        })->else(sub {
             $result = shift;
-            $c->after_forward($result, $req_storage)->then(
-                sub {
-                    Future->done;
-                });
+            Future->fail;
         });
+    })->then(sub {
+        $result = shift;
+        $c->after_forward($result, $req_storage)->then(sub {
+            Future->done;
+        });
+    });
 
     # timeout guard
     my $timer_id = Mojo::IOLoop->timer(
