@@ -24,9 +24,11 @@ sub class_for_type {
 
 sub new {
     my ($class, %args) = @_;
-    return bless \%args, $class unless $class eq __PACKAGE__;
+    return bless \%args, $class;
+}
 
-    my $type = delete $args{type} or die 'need a backend type';
+sub backend_instance {
+    my ($class, $type, %args) = @_;
     my $backend_class = $class->class_for_type($type) or die 'unknown backend type ' . $type;
     return $backend_class->new(%args);
 }
