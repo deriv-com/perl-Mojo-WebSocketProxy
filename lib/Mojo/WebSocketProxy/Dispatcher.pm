@@ -132,11 +132,15 @@ sub before_forward {
 
     my $config = $c->wsp_config->{config};
 
-    # Should first call global hooks
-    my $before_forward_hooks = [
-        ref($config->{before_forward}) eq 'ARRAY'      ? @{$config->{before_forward}}             : $config->{before_forward},
-        ref($req_storage->{before_forward}) eq 'ARRAY' ? @{delete $req_storage->{before_forward}} : delete $req_storage->{before_forward},
-    ];
+    my $before_forward_hooks = [ ];
+
+    # Global hooks are always first
+    for ($config, $req_storage) {
+        push @$before_forward_hooks, ref($_->{before_forward}) eq 'ARRAY' ? @{$_->{before_forward}} : $_->{before_forward};
+    }
+
+    # We always want to clear these after every request.
+    delete $req_storage->{before_forward};
 
     return $c->_run_hooks($before_forward_hooks, $req_storage);
 }
