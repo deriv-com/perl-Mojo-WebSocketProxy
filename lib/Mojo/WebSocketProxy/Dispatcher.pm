@@ -82,16 +82,23 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
-    my $result = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage);
+    # We still want to run any hooks even for invalid requests.
+    if(my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
+        $c->send({json => $err}, $req_storage);
+        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+    }
+    my $result;
 
-    my $result_f = $result ? Future->fail($result) : Future->done;
+    my $result_f = Future->done;
+    my $action = $c->dispatch($args) or do {
+        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
+        $c->send({json => $err }, $req_storage);
+        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+    };
 
     # main processing pipeline
     my $f = $result_f->then(sub {
-        if(my $action = $c->dispatch($args)) {
-            return Future->done($action);
-        }
-        return Future->fail($result = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request'));
+        return Future->done($action);
     })->then(sub {
         my $action = shift;
 
