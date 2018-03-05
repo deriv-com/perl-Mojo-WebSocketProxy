@@ -9,7 +9,7 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
-use JSON::MaybeXS;
+use JSON::MaybeUTF8;
 use Future::Mojo;
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
@@ -17,14 +17,13 @@ use Scalar::Util qw(blessed);
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
 ## VERSION
-my $JSON = JSON::MaybeXS->new;
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
     my $config = $c->wsp_config->{config};
 
     my $max_response_size = $config->{max_response_size};
-    if ($max_response_size && length($JSON->encode($api_response)) > $max_response_size) {
+    if ($max_response_size && length(encode_json_utf8($api_response)) > $max_response_size) {
         $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
     }
 
