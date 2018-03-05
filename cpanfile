@@ -10,6 +10,8 @@ requires 'Scalar::Util';
 requires 'Variable::Disposition';
 requires 'perl', '5.014';
 
+suggests 'Job::Async', 0;
+
 on configure => sub {
     requires 'ExtUtils::MakeMaker', '7.1101';
 };
