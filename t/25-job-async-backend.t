@@ -53,7 +53,6 @@ package t::SampleWorker {
 
     sub process {
         my ($self, $job) = @_;
-        warn 'this one';
         $self->jobs->emit($job);
     }
 };
