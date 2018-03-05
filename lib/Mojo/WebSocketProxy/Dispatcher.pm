@@ -10,7 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeXS;
-use Future::Utils qw/fmap/;
+use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
