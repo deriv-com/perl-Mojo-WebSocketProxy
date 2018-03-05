@@ -90,7 +90,6 @@ sub on_message {
     }
     my $result;
 
-    my $result_f = Future->done;
     my $action = $c->dispatch($args) or do {
         my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
         $c->send({json => $err }, $req_storage);
@@ -98,11 +97,7 @@ sub on_message {
     };
 
     # main processing pipeline
-    my $f = $result_f->then(sub {
-        return Future->done($action);
-    })->then(sub {
-        my $action = shift;
-
+    my $f = (sub {
         @{$req_storage}{keys %$action} = (values %$action);
         $req_storage->{method} = $req_storage->{name};
 
@@ -117,7 +112,7 @@ sub on_message {
             # wait what
             Future->fail;
         });
-    })->then(sub {
+    })->()->then(sub {
         $result = shift;
         return $c->after_forward(
             $result,
