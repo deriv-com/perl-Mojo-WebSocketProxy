@@ -165,13 +165,10 @@ sub _run_hooks {
 
     my $result_f = fmap {
         my $hook = shift;
-        my $result = $hook->($c, @hook_params);
-        !$result ? Future->done()
-            : (blessed($result) && $result->isa('Future')) ? $result
-            :                                                Future->fail($result);
-    }
-    foreach        => [grep { defined } @$hooks],
-        concurrent => 1;
+        my $result = $hook->($c, @hook_params) or return Future->done;
+        return $result if blessed($result) && $result->isa('Future');
+        return Future->fail($result);
+    } foreach        => [grep { defined } @$hooks], concurrent => 1;
     return $result_f;
 }
 
