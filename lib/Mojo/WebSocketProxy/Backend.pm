@@ -4,10 +4,12 @@ package Mojo::WebSocketProxy::Backend;
 use strict;
 use warnings;
 
+no indirect;
+
 use Mojo::Base -base;
 
 use MojoX::JSON::RPC::Client;
-use Guard;
+use Scope::Guard qw(guard);
 
 ## VERSION
 

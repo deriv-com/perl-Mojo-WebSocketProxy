@@ -1,8 +1,8 @@
 requires 'Class::Method::Modifiers';
 requires 'Data::UUID';
 requires 'Future';
-requires 'Guard';
-requires 'JSON::MaybeXS';
+requires 'indirect';
+requires 'Scope::Guard';
 requires 'JSON::MaybeUTF8';
 requires 'MojoX::JSON::RPC';
 requires 'Mojolicious', '== 7.29';
