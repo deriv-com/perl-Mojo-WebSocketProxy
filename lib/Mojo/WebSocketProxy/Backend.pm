@@ -5,7 +5,7 @@ use warnings;
 
 no indirect;
 
-use Mojo::WebSocketProxy::Backend::JSONRPC;
+use Mojo::Util qw(class_to_path);
 
 ## VERSION
 
@@ -16,7 +16,10 @@ our %CLASSES = (
 
 sub class_for_type {
     my ($class, $type) = @_;
-    return $CLASSES{$type};
+    my $target_class = $CLASSES{$type};
+    # extra () around require to avoid treating the function call as a class name
+    require(class_to_path($target_class)) unless $target_class->can('new');
+    return $target_class;
 }
 
 sub new {
