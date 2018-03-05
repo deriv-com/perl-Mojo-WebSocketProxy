@@ -96,23 +96,21 @@ sub on_message {
         return $c->_run_hooks($config->{after_dispatch} || [])->retain;
     };
 
-    # main processing pipeline
-    my $f = (sub {
-        @{$req_storage}{keys %$action} = (values %$action);
-        $req_storage->{method} = $req_storage->{name};
+    @{$req_storage}{keys %$action} = (values %$action);
+    $req_storage->{method} = $req_storage->{name};
 
-        $c->before_forward(
-            $req_storage
-        )->transform(done => sub {
-            # Note that we completely ignore the return value of ->before_forward here.
-            return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
-            return $c->forward($req_storage);
-        })->else(sub {
-            $result = shift;
-            # wait what
-            Future->fail;
-        });
-    })->()->then(sub {
+    # main processing pipeline
+    my $f = $c->before_forward(
+        $req_storage
+    )->transform(done => sub {
+        # Note that we completely ignore the return value of ->before_forward here.
+        return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
+        return $c->forward($req_storage);
+    })->else(sub {
+        $result = shift;
+        # wait what
+        Future->fail;
+    })->then(sub {
         $result = shift;
         return $c->after_forward(
             $result,
