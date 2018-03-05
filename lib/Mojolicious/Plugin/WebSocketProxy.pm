@@ -58,14 +58,18 @@ sub register {
         die 'No actions found!';
     }
 
+    # For backwards compatibility, we always want to add a plain JSON::RPC backend
     $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::Backend->new(
+        type => 'jsonrpc',
         url => delete $config->{url},
-    ));
+    )) unless exists $config->{backends}{default};
 
     if(my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
             $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->new(
-                $backend_configs->{$name}
+                # May be overridden by later config
+                type => 'jsonrpc',
+                %{$backend_configs->{$name}},
             ));
         }
     }
