@@ -92,10 +92,10 @@ sub on_message {
             return Future->done($action);
         }
         return Future->fail($result = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request'));
-    )->then(sub {
+    })->then(sub {
         my $action = shift;
 
-        @{$req_storage}{keys %$action} = values %$action;
+        @{$req_storage}{keys %$action} = (values %$action);
         $req_storage->{method} = $req_storage->{name};
 
         $c->before_forward(
@@ -111,7 +111,10 @@ sub on_message {
         });
     })->then(sub {
         $result = shift;
-        $c->after_forward($result, $req_storage)->then(sub {
+        return $c->after_forward(
+            $result,
+            $req_storage
+        )->then(sub {
             Future->done;
         });
     });
