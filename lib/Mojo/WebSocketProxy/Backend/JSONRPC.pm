@@ -5,111 +5,19 @@ use warnings;
 
 no indirect;
 
-use Mojo::Base -base;
+use parent qw(Mojo::WebSocketProxy::Backend);
 
 use MojoX::JSON::RPC::Client;
 use Scope::Guard qw(guard);
 
 ## VERSION
 
-has 'url';
-
-sub make_call_params {
-    my ($c, $req_storage) = @_;
-
-    my $args         = $req_storage->{args};
-    my $stash_params = $req_storage->{stash_params};
-
-    my $call_params = $req_storage->{call_params};
-    $call_params->{args} = $args;
-
-    if (defined $stash_params) {
-        $call_params->{$_} = $c->stash($_) for @$stash_params;
-    }
-
-    return $call_params;
-}
-
-sub get_rpc_response_cb {
-    my ($c, $req_storage) = @_;
-
-    my $success_handler = delete $req_storage->{success};
-    my $error_handler   = delete $req_storage->{error};
-
-    if (my $rpc_response_cb = delete $req_storage->{rpc_response_cb}) {
-        return sub {
-            my $rpc_response = shift;
-            return $rpc_response_cb->($c, $rpc_response, $req_storage);
-        };
-    } else {
-        return sub {
-            my $rpc_response = shift;
-            if (ref($rpc_response) eq 'HASH' and exists $rpc_response->{error}) {
-                $error_handler->($c, $rpc_response, $req_storage) if defined $error_handler;
-                return error_api_response($c, $rpc_response, $req_storage);
-            } else {
-                $success_handler->($c, $rpc_response, $req_storage) if defined $success_handler;
-                store_response($c, $rpc_response);
-                return success_api_response($c, $rpc_response, $req_storage);
-            }
-            return;
-        };
-    }
-    return;
-}
-
-sub store_response {
-    my ($c, $rpc_response) = @_;
-
-    if (ref($rpc_response) eq 'HASH' && $rpc_response->{stash}) {
-        $c->stash(%{delete $rpc_response->{stash}});
-    }
-    return;
-}
-
-sub success_api_response {
-    my ($c, $rpc_response, $req_storage) = @_;
-
-    my $msg_type             = $req_storage->{msg_type};
-    my $rpc_response_handler = $req_storage->{response};
-
-    my $api_response = {
-        msg_type  => $msg_type,
-        $msg_type => $rpc_response,
-    };
-
-    if (ref($rpc_response) eq 'HASH' and keys %$rpc_response == 1 and exists $rpc_response->{status}) {
-        $api_response->{$msg_type} = $rpc_response->{status};
-    }
-
-    if ($rpc_response_handler) {
-        return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
-    }
-
-    return $api_response;
-}
-
-sub error_api_response {
-    my ($c, $rpc_response, $req_storage) = @_;
-
-    my $msg_type             = $req_storage->{msg_type};
-    my $rpc_response_handler = $req_storage->{response};
-    my $api_response =
-        $c->wsp_error($msg_type, $rpc_response->{error}->{code}, $rpc_response->{error}->{message_to_client}, $rpc_response->{error}->{details});
-
-    if ($rpc_response_handler) {
-        return $rpc_response_handler->($rpc_response, $api_response, $req_storage);
-    }
-
-    return $api_response;
-}
+sub url { shift->{url} }
 
 my $request_number = 0;
 
 sub call_rpc {
-    my $self        = shift;    ## unused
-    my $c           = shift;
-    my $req_storage = shift;
+    my ($self, $c, $req_storage) = @_;
 
     my $url = $req_storage->{url} // $self->url;
     die 'No url found' unless $url;
@@ -121,7 +29,7 @@ sub call_rpc {
 
     $req_storage->{call_params} ||= {};
 
-    my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
+    my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
@@ -132,7 +40,7 @@ sub call_rpc {
         # enough for short-term uniqueness
         id     => join('_', $$, $request_number++, time, (0+[])),
         method => $method,
-        params => make_call_params($c, $req_storage),
+        params => $self->make_call_params($c, $req_storage),
     };
 
     $_->($c, $req_storage) for @$before_call_hook;

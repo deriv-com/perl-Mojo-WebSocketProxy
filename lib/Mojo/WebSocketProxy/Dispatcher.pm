@@ -219,7 +219,7 @@ See L<Mojo::WebSocketProxy> for details on how to use hooks and parameters.
 
 =head2 open_connection
 
-Run while openning new wss connection.
+Run while opening new wss connection.
 Run hook when connection is opened.
 Set finish connection callback.
 
