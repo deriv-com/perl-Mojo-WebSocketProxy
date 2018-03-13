@@ -29,17 +29,17 @@ sub new {
     # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
     # instance can be provided here.
     $self->{client} //= do {
-        $jobman //= do {
+        unless($jobman) {
             # We don't hold a ref to this, since that might introduce unfortunate cycles
             $loop //= do {
                 require IO::Async::Loop::Mojo;
                 IO::Async::Loop::Mojo->new;
             };
             $loop->add(
-                my $jobman = Job::Async->new
+                $jobman = Job::Async->new
             );
-            $jobman
-        };
+        }
+
         $jobman->client;
     };
     return $self;
