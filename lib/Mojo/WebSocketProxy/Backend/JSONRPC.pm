@@ -90,7 +90,8 @@ sub call_rpc {
             $c->send({json => $api_response}, $req_storage);
 
             return;
-        });
+        })
+    );
     return;
 }
 
