@@ -135,6 +135,6 @@ Mojo::WebSocketProxy::Backend
 
 =head1 DESCRIPTION
 
-See L<Mojo::WebSocketProxy::Backend> for the original JSON::RPC backend.
+See L<Mojo::WebSocketProxy::Backend::JSONRPC> for the original JSON::RPC backend.
 
 =cut
