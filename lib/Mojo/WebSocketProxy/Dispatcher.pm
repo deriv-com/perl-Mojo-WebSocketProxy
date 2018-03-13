@@ -87,7 +87,6 @@ sub on_message {
         $c->send({json => $err}, $req_storage);
         return $c->_run_hooks($config->{after_dispatch} || [])->retain;
     }
-    my $result;
 
     my $action = $c->dispatch($args) or do {
         my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
