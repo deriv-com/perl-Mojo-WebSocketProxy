@@ -17,14 +17,6 @@ sub register_type {
     return;
 }
 
-sub class_for_type {
-    my ($class, $type) = @_;
-    my $target_class = $CLASSES{$type};
-    # extra () around require to avoid treating the function call as a class name
-    require(class_to_path($target_class)) unless $target_class->can('new');
-    return $target_class;
-}
-
 sub new {
     my ($class, %args) = @_;
     return bless \%args, $class;
@@ -32,7 +24,7 @@ sub new {
 
 sub backend_instance {
     my ($class, $type, %args) = @_;
-    my $backend_class = $class->class_for_type($type) or die 'unknown backend type ' . $type;
+    my $backend_class = $CLASSES{$type} or die 'unknown backend type ' . $type;
     return $backend_class->new(%args);
 }
 
