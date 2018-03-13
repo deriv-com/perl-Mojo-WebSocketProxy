@@ -14,6 +14,8 @@ use Log::Any qw($log);
 
 ## VERSION
 
+__PACKAGE__->register_type( 'job_async' );
+
 sub new {
     my ($class, %args) = @_;
     # Avoid holding these - we only want the Job::Async::Client instance, and everything else

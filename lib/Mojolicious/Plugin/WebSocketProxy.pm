@@ -8,6 +8,9 @@ use Mojo::WebSocketProxy::Backend;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 
+# Other backend types may be available; we default to 'jsonrpc' in the code below
+use Mojo::WebSocketProxy::Backend::JSONRPC;
+
 ## VERSION
 
 sub register {

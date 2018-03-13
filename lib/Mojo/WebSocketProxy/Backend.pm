@@ -9,10 +9,13 @@ use Mojo::Util qw(class_to_path);
 
 ## VERSION
 
-our %CLASSES = (
-    jsonrpc   => 'Mojo::WebSocketProxy::Backend::JSONRPC',
-    job_async => 'Mojo::WebSocketProxy::Backend::JobAsync',
-);
+our %CLASSES = ();
+
+sub register_type {
+    my ($class, $type) = @_;
+    $CLASSES{$type} = $class;
+    return;
+}
 
 sub class_for_type {
     my ($class, $type) = @_;

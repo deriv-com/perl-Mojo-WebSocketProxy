@@ -15,6 +15,8 @@ use MojoX::JSON::RPC::Client;
 
 ## VERSION
 
+__PACKAGE__->register_type( 'jsonrpc' );
+
 sub url { shift->{url} }
 
 my $request_number = 0;
