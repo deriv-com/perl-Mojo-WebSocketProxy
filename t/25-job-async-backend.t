@@ -60,6 +60,8 @@ package t::SampleWorker {
 package t::FrontEnd {
     use base 'Mojolicious';
 
+    use Mojo::WebSocketProxy::Backend::JobAsync;
+
     sub startup {
          my $self = shift;
 
