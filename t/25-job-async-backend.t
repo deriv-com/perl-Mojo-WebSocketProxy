@@ -39,7 +39,7 @@ package t::SampleWorker {
 
     sub start { }
 
-    sub trigger : method{
+    sub trigger {
         my ($self) = @_;
         $self->{active} ||= (repeat {
             if(my $job = shift(@::PENDING_JOBS)) {
