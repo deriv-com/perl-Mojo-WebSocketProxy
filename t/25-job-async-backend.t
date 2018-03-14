@@ -120,14 +120,19 @@ test_wsp {
             });
         note 'Trigger worker once before we send the message';
         $worker->trigger;
+
         $t->send_ok({json => {faraway => 1}});
-        Mojo::IOLoop->singleton->reactor->next_tick($worker->curry::trigger);
+        Mojo::IOLoop->one_tick until @PENDING_JOBS;
+        $worker->trigger;
         $t->message_ok;
         is(decode_json_utf8($t->message->[1])->{faraway}, 'everything worked');
+
         $t->send_ok({json => {faraway => 1}});
-        Mojo::IOLoop->singleton->reactor->next_tick($worker->curry::trigger);
+        Mojo::IOLoop->one_tick until @PENDING_JOBS;
+        $worker->trigger;
         $t->message_ok;
-        is(decode_json_utf8($t->message->[1])->{faraway}, 'everything worked')
+        is(decode_json_utf8($t->message->[1])->{faraway}, 'everything worked');
+
     }, undef, 'no exceptions when decoding the Job::Async response') or note explain $t->message->[1];
 } 't::FrontEnd';
 
