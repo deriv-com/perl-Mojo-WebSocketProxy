@@ -1,7 +1,7 @@
 requires 'Class::Method::Modifiers';
 requires 'Data::UUID';
 requires 'Future', '>= 0.36';
-requires 'Future::Mojo';
+requires 'Future::Mojo', '>= 0.004';
 requires 'indirect';
 requires 'curry', '>= 1.001';
 requires 'JSON::MaybeUTF8';

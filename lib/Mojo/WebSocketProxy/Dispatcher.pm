@@ -10,7 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeUTF8;
-use Future::Mojo;
+use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
 
