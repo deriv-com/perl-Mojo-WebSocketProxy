@@ -16,6 +16,42 @@ use Log::Any qw($log);
 
 __PACKAGE__->register_type( 'job_async' );
 
+=head1 NAME
+
+Mojo::WebSocketProxy::Backend::JobAsync
+
+=head1 DESCRIPTION
+
+A subclass of L<Mojo::WebSocketProxy::Backend> which dispatches RPC requests
+via L<Job::Async>.
+
+=cut
+
+=head1 CLASS METHODS
+
+=head2 new
+
+Returns a new instance. Required params:
+
+=over 4
+
+=item loop => IO::Async::Loop
+
+Containing L<IO::Async::Loop> instance.
+
+=item jobman => Job::Async
+
+Optional L<Job::Async> instance.
+
+=item client => Job::Async::Client
+
+Optional L<Job::Async::Client> instance. Will be constructed from
+C<< $jobman->client >> if not provided.
+
+=back
+
+=cut
+
 sub new {
     my ($class, %args) = @_;
     # Avoid holding these - we only want the Job::Async::Client instance, and everything else
@@ -45,7 +81,25 @@ sub new {
     return $self;
 }
 
+=head1 METHODS
+
+=cut
+
+=head2 client
+
+    $client = $backend->client
+
+Returns the L<Job::Async::Client> instance.
+
+=cut
+
 sub client { return shift->{client} }
+
+=head2 call_rpc
+
+Implements the L<Mojo::WebSocketProxy::Backend/call_rpc> interface.
+
+=cut
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
@@ -99,4 +153,3 @@ sub call_rpc {
 }
 
 1;
-
