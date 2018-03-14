@@ -11,16 +11,43 @@ use Mojo::Util qw(class_to_path);
 
 our %CLASSES = ();
 
+=head1 NAME
+
+Mojo::WebSocketProxy::Backend
+
+=head1 DESCRIPTION
+
+Abstract base class for RPC dispatch backends. See
+L<Mojo::WebSocketProxy::Backend::JSONRPC> for the original JSON::RPC backend.
+
+=cut
+
+=head1 CLASS METHODS
+
+=cut
+
+=head2 register_type
+
+    $class->register_type($type)
+
+Registers that the invoking subclass implements an RPC backend of the given type.
+
+=cut
+
 sub register_type {
     my ($class, $type) = @_;
     $CLASSES{$type} = $class;
     return;
 }
 
-sub new {
-    my ($class, %args) = @_;
-    return bless \%args, $class;
-}
+=head2 backend_instance
+
+    $backend = Mojo::WebSocketProxy::Backend->new($type, %args)
+
+Constructs a new instance of the subclass previously registered as handling
+the given type. Throws an exception of no such class exists.
+
+=cut
 
 sub backend_instance {
     my ($class, $type, %args) = @_;
@@ -32,6 +59,30 @@ sub backend_instance {
 
 These will be inherited by backend implementations and can be used
 for some common actions when processing requests and responses.
+
+=cut
+
+=head2 new
+
+    $backend = $class->new(%args)
+
+Returns a new blessed HASH reference containing the given arguments.
+
+=cut
+
+sub new {
+    my ($class, %args) = @_;
+    return bless \%args, $class;
+}
+
+=head2 make_call_params
+
+Make RPC call params.
+
+    $backend->make_call_params($c, $req_storage)
+
+Method params:
+    stash_params - it contains params to forward from server storage.
 
 =cut
 
@@ -50,6 +101,10 @@ sub make_call_params {
 
     return $call_params;
 }
+
+=head2 get_rpc_response_cb
+
+=cut
 
 sub get_rpc_response_cb {
     my ($self, $c, $req_storage) = @_;
@@ -79,6 +134,12 @@ sub get_rpc_response_cb {
     return;
 }
 
+=head2 store_response
+
+Save RPC response to storage.
+
+=cut
+
 sub store_response {
     my ($c, $rpc_response) = @_;
 
@@ -87,6 +148,12 @@ sub store_response {
     }
     return;
 }
+
+=head2 success_api_response
+
+Make wsapi proxy server response from RPC response.
+
+=cut
 
 sub success_api_response {
     my ($c, $rpc_response, $req_storage) = @_;
@@ -110,6 +177,12 @@ sub success_api_response {
     return $api_response;
 }
 
+=head2 error_api_response
+
+Make wsapi proxy server response from RPC response.
+
+=cut
+
 sub error_api_response {
     my ($c, $rpc_response, $req_storage) = @_;
 
@@ -125,16 +198,16 @@ sub error_api_response {
     return $api_response;
 }
 
-1;
-
-__END__
-
-=head1 NAME
-
-Mojo::WebSocketProxy::Backend
-
-=head1 DESCRIPTION
-
-See L<Mojo::WebSocketProxy::Backend::JSONRPC> for the original JSON::RPC backend.
+=head1 REQUIRED METHODS - subclasses must implement
 
 =cut
+
+=head2 call_rpc
+
+    $f = $backend->call_rpc($c, $req_storage)
+
+Invoked to actually dispatch a given RPC method call to the backend.
+
+=cut
+
+1;

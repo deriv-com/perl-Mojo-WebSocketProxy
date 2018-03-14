@@ -105,47 +105,20 @@ Mojo::WebSocketProxy::Backend
 
 =head1 DESCRIPTION
 
-The calling engine which does the actual RPC call.
+A subclass of L<Mojo::WebSocketProxy::Backend> which dispatched RPC requests
+over JSON-RPC over HTTP/HTTPS.
 
 =head1 METHODS
 
-=head2 forward
+=head2 url
 
-Forward the call to RPC service and return response to websocket connection.
+    $url = $backend->url
 
-Call params is made in make_call_params method.
-Response is made in success_api_response method.
-These methods would be override or extend custom functionality.
-
-=head2 make_call_params
-
-Make RPC call params.
-
-Method params:
-    stash_params - it contains params to forward from server storage.
-
-=head2 rpc_response_cb
-
-Callback for RPC service response.
-Can use custom handlers error and success.
-
-=head2 store_response
-
-Save RPC response to storage.
-
-=head2 success_api_response
-
-Make wsapi proxy server response from RPC response.
-
-=head2 error_api_response
-
-Make wsapi proxy server response from RPC response.
+Returns the configured default dispatch URL.
 
 =head2 call_rpc
 
-Make RPC call.
-
-=head2 get_rpc_response_cb
+Implements the L<Mojo::WebSocketProxy::Backend/call_rpc> interface.
 
 =head1 SEE ALSO
 
