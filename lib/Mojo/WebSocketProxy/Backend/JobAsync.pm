@@ -45,7 +45,7 @@ sub new {
     return $self;
 }
 
-sub client { shift->{client} }
+sub client { return shift->{client} }
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
