@@ -63,33 +63,37 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
 
     $_->($c, $req_storage) for @$before_call_hook;
+
     $self->client->submit(
         data => $req_storage
-    )->then(sub {
-        my ($result) = @_;
-        $log->debugf('->submit completion: ', $result);
+    )->on_ready(sub {
+        my ($f) = @_;
+        $log->debugf('->submit completion: ', $f->state);
 
         $_->($c, $req_storage) for @$before_get_rpc_response_hook;
 
         # unconditionally stop any further processing if client is already disconnected
         return Future->done unless $c and $c->tx;
 
-        $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
+        my $api_response;
+        if($f->is_done) {
+            my ($result) = $f->get;
 
-#        if ($res->is_error) {
-#            warn $res->error_message;
-#            $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
-#            $c->send({json => $api_response}, $req_storage);
-#            return;
-#        }
+            $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
-        my $api_response = $rpc_response_cb->($result);
+            $api_response = $rpc_response_cb->($result);
+        }
+        else {
+            my ($failure) = $f->failure;
+            $log->warnf("method %s failed: %s", $method, $failure);
 
-        return Future->done unless $api_response;
+            $api_response = $c->wsp_error(
+                $msg_type, 'CallError', 'Sorry, an error occurred while processing your request.'
+            );
+        }
+        return unless $api_response;
 
         $c->send({json => $api_response}, $req_storage);
-
-        return Future->done;
     })->retain;
     return;
 }
