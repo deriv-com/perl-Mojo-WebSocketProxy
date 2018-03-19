@@ -142,7 +142,7 @@ sub call_rpc {
             $log->warnf("method %s failed: %s", $method, $failure);
 
             $api_response = $c->wsp_error(
-                $msg_type, 'CallError', 'Sorry, an error occurred while processing your request.'
+                $msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.'
             );
         }
         return unless $api_response;
