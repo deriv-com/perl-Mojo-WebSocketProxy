@@ -10,6 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeUTF8;
+use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
@@ -47,7 +48,7 @@ sub open_connection {
     my ($c) = @_;
 
     my $log = $c->app->log;
-    $log->debug("opening a websocket for " . $c->tx->remote_address);
+    $log->debug("accepting a websocket connection from " . $c->tx->remote_address);
 
     # Enable permessage-deflate
     $c->tx->with_compression;
@@ -59,9 +60,12 @@ sub open_connection {
 
     $config->{opened_connection}->($c) if $config->{opened_connection};
 
-    $c->on(json => sub {
-        my ($d, $json) = @_;
-        on_message(@_) if $json;
+    $c->on(message => sub {
+        my ($c, $msg) = @_;
+        # Incoming data will be JSON-formatted text, as a Unicode string.
+        # We normalize the entire string before decoding.
+        my $args = Mojo::JSON::decode_json(Unicode::Normalize::NFC($msg));
+        on_message($c, $args);
     });
 
     $c->on(binary => sub {
