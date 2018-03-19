@@ -8,6 +8,9 @@ use Mojo::WebSocketProxy::Backend;
 use Mojo::WebSocketProxy::Config;
 use Mojo::WebSocketProxy::Dispatcher;
 
+# Other backend types may be available; we default to 'jsonrpc' in the code below
+use Mojo::WebSocketProxy::Backend::JSONRPC;
+
 ## VERSION
 
 sub register {
@@ -58,14 +61,17 @@ sub register {
         die 'No actions found!';
     }
 
-    $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::Backend->new(
-        url => delete $config->{url},
-    ));
+    # For backwards compatibility, we always want to add a plain JSON::RPC backend
+    $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::Backend->backend_instance(
+        jsonrpc => url => delete $config->{url},
+    )) unless exists $config->{backends}{default};
 
     if(my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
-            $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->new(
-                $backend_configs->{$name}
+            my %args = %{$backend_configs->{$name}};
+            my $type = delete($args{type}) // 'jsonrpc';
+            $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->backend_instance(
+                $type => %args
             ));
         }
     }

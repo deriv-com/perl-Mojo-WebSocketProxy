@@ -9,22 +9,21 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
-use JSON::MaybeXS;
-use Future::Utils qw/fmap/;
+use JSON::MaybeUTF8;
+use Future::Mojo 0.004;    # ->new_timeout
+use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
-use Variable::Disposition qw(dispose retain retain_future);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
 ## VERSION
-my $JSON = JSON::MaybeXS->new;
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
     my $config = $c->wsp_config->{config};
 
     my $max_response_size = $config->{max_response_size};
-    if ($max_response_size && length($JSON->encode($api_response)) > $max_response_size) {
+    if ($max_response_size && length(encode_json_utf8($api_response)) > $max_response_size) {
         $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
     }
 
@@ -83,67 +82,49 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
-    my $result = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage);
+    # We still want to run any hooks even for invalid requests.
+    if(my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
+        $c->send({json => $err}, $req_storage);
+        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+    }
 
-    my $result_f = $result ? Future->fail($result) : Future->done;
+    my $action = $c->dispatch($args) or do {
+        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
+        $c->send({json => $err }, $req_storage);
+        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+    };
+
+    @{$req_storage}{keys %$action} = (values %$action);
+    $req_storage->{method} = $req_storage->{name};
 
     # main processing pipeline
-    my $f = $result_f->then(
-        sub {
-            my $action = $c->dispatch($args);
-            Future->fail($result = $c->wsp_error('error', 'UnrecognisedRequest', 'Unrecognised request'))
-                unless $action;
-            Future->done($action);
-        }
-        )->then(
-        sub {
-            my $action = shift;
+    my $f = $c->before_forward(
+        $req_storage
+    )->transform(done => sub {
+        # Note that we completely ignore the return value of ->before_forward here.
+        return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
+        return $c->forward($req_storage);
+    })->then(sub {
+        my $result = shift;
+        return $c->after_forward(
+            $result,
+            $req_storage
+        )->transform(done => sub { $result })
+    }, sub {
+        my $result = shift;
+        Future->done($result);
+    });
 
-            %$req_storage = (%$req_storage, %$action);
-            $req_storage->{method} = $req_storage->{name};
-
-            my $f = $c->before_forward($req_storage)->then(
-                sub {
-                    my $next =
-                        $req_storage->{instead_of_forward}
-                        ? sub { $req_storage->{instead_of_forward}->($c, $req_storage) }
-                        : sub { $c->forward($req_storage) };
-                    Future->done($next->());
-                }
-                )->else(
-                sub {
-                    $result = shift;
-                    Future->fail;
-                });
-        }
-        )->then(
-        sub {
-            $result = shift;
-            $c->after_forward($result, $req_storage)->then(
-                sub {
-                    Future->done;
-                });
-        });
-
-    # timeout guard
-    my $timer_id = Mojo::IOLoop->timer(
-        TIMEOUT,
-        sub {
-            $c->app->log->warn("$0 ($$) timeout, args: " . $JSON->encode($args));
-            $result = $c->wsp_error('error', 'Timeout', 'Timeout');
-            $f->fail($result);
-        });
-
-    # post-process pipeline, always response
-    retain_future(
-        $f->followed_by(
-            sub {
-                Mojo::IOLoop->remove($timer_id);
-                $c->send({json => $result}, $req_storage) if $result;
-                return $c->_run_hooks($config->{after_dispatch} || []);
-            }));
-
-    return;
+    return Future->wait_any(
+        Future::Mojo->new_timeout(TIMEOUT)->else(sub {
+            return Future->done($c->wsp_error('error', Timeout => 'Timeout'))
+        }),
+        $f
+    )->then(sub {
+        my ($result) = @_;
+        $c->send({json => $result}, $req_storage) if $result;
+        return $c->_run_hooks($config->{after_dispatch} || []);
+    })->retain;
 }
 
 sub before_forward {
@@ -151,11 +132,15 @@ sub before_forward {
 
     my $config = $c->wsp_config->{config};
 
-    # Should first call global hooks
-    my $before_forward_hooks = [
-        ref($config->{before_forward}) eq 'ARRAY'      ? @{$config->{before_forward}}             : $config->{before_forward},
-        ref($req_storage->{before_forward}) eq 'ARRAY' ? @{delete $req_storage->{before_forward}} : delete $req_storage->{before_forward},
-    ];
+    my $before_forward_hooks = [ ];
+
+    # Global hooks are always first
+    for ($config, $req_storage) {
+        push @$before_forward_hooks, ref($_->{before_forward}) eq 'ARRAY' ? @{$_->{before_forward}} : $_->{before_forward};
+    }
+
+    # We always want to clear these after every request.
+    delete $req_storage->{before_forward};
 
     return $c->_run_hooks($before_forward_hooks, $req_storage);
 }
@@ -174,13 +159,10 @@ sub _run_hooks {
 
     my $result_f = fmap {
         my $hook = shift;
-        my $result = $hook->($c, @hook_params);
-        !$result ? Future->done()
-            : (blessed($result) && $result->isa('Future')) ? $result
-            :                                                Future->fail($result);
-    }
-    foreach        => [grep { defined } @$hooks],
-        concurrent => 1;
+        my $result = $hook->($c, @hook_params) or return Future->done;
+        return $result if blessed($result) && $result->isa('Future');
+        return Future->fail($result);
+    } foreach        => [grep { defined } @$hooks], concurrent => 1;
     return $result_f;
 }
 
@@ -236,7 +218,7 @@ See L<Mojo::WebSocketProxy> for details on how to use hooks and parameters.
 
 =head2 open_connection
 
-Run while openning new wss connection.
+Run while opening new wss connection.
 Run hook when connection is opened.
 Set finish connection callback.
 

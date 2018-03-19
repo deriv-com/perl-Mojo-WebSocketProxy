@@ -71,11 +71,11 @@ sub _failed_key_value {
         $key !~ /$key_regex/
         # !-~ to allow a range of acceptable characters. To find what is the range, look at ascii table
 
-        # \p{L} is to match utf-8 characters
+        # \p{L} is to ensure we include other Unicode letters outside the ASCII range
         # \p{Script=Common} is to match double byte characters in Japanese keyboards, eg: '１−１−１'
-        # refer: http://perldoc.perl.org/perlunicode.html
+        # refer: http://perldoc.perl.org/perlunicode.html and http://perldoc.perl.org/perluniprops.html
         # null-values are allowed
-        or ($value and $value !~ /^[\p{Script=Common}\p{L}\s\w\@_:!-~]{0,300}$/))
+        or ($value and $value !~ /^[\p{Script=Common}\p{Letter}\s\w\@_:!-~]{0,300}$/))
     {
         return ($key, $value);
     }

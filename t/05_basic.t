@@ -95,7 +95,7 @@ is_deeply $res,
     'debug'       => 1,
     'msg_type'    => 'some_action'
     },
-    'It should return formating response';
+    'It should return formatting response';
 
 $t = $t->send_ok({json => {not_exists_action => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);

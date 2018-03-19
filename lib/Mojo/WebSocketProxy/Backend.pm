@@ -1,20 +1,93 @@
 package Mojo::WebSocketProxy::Backend;
-# TODO(leonerd): Split out JSON-RPC-specific parts into a subclass
 
 use strict;
 use warnings;
 
-use Mojo::Base -base;
+no indirect;
 
-use MojoX::JSON::RPC::Client;
-use Guard;
+use Mojo::Util qw(class_to_path);
 
 ## VERSION
 
-has 'url';
+our %CLASSES = ();
+
+=head1 NAME
+
+Mojo::WebSocketProxy::Backend
+
+=head1 DESCRIPTION
+
+Abstract base class for RPC dispatch backends. See
+L<Mojo::WebSocketProxy::Backend::JSONRPC> for the original JSON::RPC backend.
+
+=cut
+
+=head1 CLASS METHODS
+
+=cut
+
+=head2 register_type
+
+    $class->register_type($type)
+
+Registers that the invoking subclass implements an RPC backend of the given type.
+
+=cut
+
+sub register_type {
+    my ($class, $type) = @_;
+    $CLASSES{$type} = $class;
+    return;
+}
+
+=head2 backend_instance
+
+    $backend = Mojo::WebSocketProxy::Backend->new($type, %args)
+
+Constructs a new instance of the subclass previously registered as handling
+the given type. Throws an exception of no such class exists.
+
+=cut
+
+sub backend_instance {
+    my ($class, $type, %args) = @_;
+    my $backend_class = $CLASSES{$type} or die 'unknown backend type ' . $type;
+    return $backend_class->new(%args);
+}
+
+=head2 METHODS - For backend classes
+
+These will be inherited by backend implementations and can be used
+for some common actions when processing requests and responses.
+
+=cut
+
+=head2 new
+
+    $backend = $class->new(%args)
+
+Returns a new blessed HASH reference containing the given arguments.
+
+=cut
+
+sub new {
+    my ($class, %args) = @_;
+    return bless \%args, $class;
+}
+
+=head2 make_call_params
+
+Make RPC call params.
+
+    $backend->make_call_params($c, $req_storage)
+
+Method params:
+    stash_params - it contains params to forward from server storage.
+
+=cut
 
 sub make_call_params {
-    my ($c, $req_storage) = @_;
+    my ($self, $c, $req_storage) = @_;
 
     my $args         = $req_storage->{args};
     my $stash_params = $req_storage->{stash_params};
@@ -29,8 +102,12 @@ sub make_call_params {
     return $call_params;
 }
 
+=head2 get_rpc_response_cb
+
+=cut
+
 sub get_rpc_response_cb {
-    my ($c, $req_storage) = @_;
+    my ($self, $c, $req_storage) = @_;
 
     my $success_handler = delete $req_storage->{success};
     my $error_handler   = delete $req_storage->{error};
@@ -57,6 +134,12 @@ sub get_rpc_response_cb {
     return;
 }
 
+=head2 store_response
+
+Save RPC response to storage.
+
+=cut
+
 sub store_response {
     my ($c, $rpc_response) = @_;
 
@@ -65,6 +148,12 @@ sub store_response {
     }
     return;
 }
+
+=head2 success_api_response
+
+Make wsapi proxy server response from RPC response.
+
+=cut
 
 sub success_api_response {
     my ($c, $rpc_response, $req_storage) = @_;
@@ -88,6 +177,12 @@ sub success_api_response {
     return $api_response;
 }
 
+=head2 error_api_response
+
+Make wsapi proxy server response from RPC response.
+
+=cut
+
 sub error_api_response {
     my ($c, $rpc_response, $req_storage) = @_;
 
@@ -103,145 +198,16 @@ sub error_api_response {
     return $api_response;
 }
 
-my $request_number = 0;
+=head1 REQUIRED METHODS - subclasses must implement
 
-sub call_rpc {
-    my $self        = shift;    ## unused
-    my $c           = shift;
-    my $req_storage = shift;
-
-    my $url = $req_storage->{url} // $self->url;
-    die 'No url found' unless $url;
-
-    $url .= $req_storage->{method};
-
-    my $method   = $req_storage->{method};
-    my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
-
-    $req_storage->{call_params} ||= {};
-
-    my $rpc_response_cb = get_rpc_response_cb($c, $req_storage);
-
-    my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hook             = delete($req_storage->{before_call})             || [];
-
-    my $client  = MojoX::JSON::RPC::Client->new;
-    my $callobj = {
-        # enough for short-term uniqueness
-        id     => join('_', $$, $request_number++, time, (0+[])),
-        method => $method,
-        params => make_call_params($c, $req_storage),
-    };
-
-    $_->($c, $req_storage) for @$before_call_hook;
-
-    $client->call(
-        $url, $callobj,
-        sub {
-            my $res = pop;
-
-            $_->($c, $req_storage) for @$before_get_rpc_response_hook;
-
-            # unconditionally stop any further processing if client is already disconnected
-            return unless $c->tx;
-
-            my $mem_guard = guard {
-                undef $client;
-                undef $req_storage;
-            };
-
-            my $api_response;
-            if (!$res) {
-                my $tx = $client->tx;
-                my $details = 'URL: ' . $tx->req->url;
-                if (my $err = $tx->error) {
-                    $details .= ', code: ' . ($err->{code} // 'n/a') . ', response: ' . $err->{message};
-                }
-                warn "WrongResponse [$msg_type], details: $details";
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-                $c->send({json => $api_response}, $req_storage);
-                return;
-            }
-
-            $_->($c, $req_storage, $res) for @$after_got_rpc_response_hook;
-
-            if ($res->is_error) {
-                warn $res->error_message;
-                $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
-                $c->send({json => $api_response}, $req_storage);
-                return;
-            }
-
-            $api_response = $rpc_response_cb->($res->result);
-
-            return unless $api_response;
-
-            $c->send({json => $api_response}, $req_storage);
-
-            return;
-        });
-    return;
-}
-
-1;
-
-__END__
-
-=head1 NAME
-
-Mojo::WebSocketProxy::Backend
-
-=head1 DESCRIPTION
-
-The calling engine which does the actual RPC call.
-
-=head1 METHODS
-
-=head2 forward
-
-Forward the call to RPC service and return response to websocket connection.
-
-Call params is made in make_call_params method.
-Response is made in success_api_response method.
-These methods would be override or extend custom functionality.
-
-=head2 make_call_params
-
-Make RPC call params.
-
-Method params:
-    stash_params - it contains params to forward from server storage.
-
-=head2 rpc_response_cb
-
-Callback for RPC service response.
-Can use custom handlers error and success.
-
-=head2 store_response
-
-Save RPC response to storage.
-
-=head2 success_api_response
-
-Make wsapi proxy server response from RPC response.
-
-=head2 error_api_response
-
-Make wsapi proxy server response from RPC response.
+=cut
 
 =head2 call_rpc
 
-Make RPC call.
+    $f = $backend->call_rpc($c, $req_storage)
 
-=head2 get_rpc_response_cb
-
-=head1 SEE ALSO
-
-L<Mojolicious::Plugin::WebSocketProxy>,
-L<Mojo::WebSocketProxy>
-L<Mojo::WebSocketProxy::Dispatcher>,
-L<Mojo::WebSocketProxy::Config>
-L<Mojo::WebSocketProxy::Parser>
+Invoked to actually dispatch a given RPC method call to the backend.
 
 =cut
+
+1;
