@@ -104,6 +104,8 @@ sub make_call_params {
 
 =head2 get_rpc_response_cb
 
+Returns the stored callback for this response if we have one, otherwise an empty list.
+
 =cut
 
 sub get_rpc_response_cb {

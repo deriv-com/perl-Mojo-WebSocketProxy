@@ -7,6 +7,28 @@ use Mojo::Base -base;
 
 ## VERSION
 
+=head1 METHODS
+
+=cut
+
+=head2 init
+
+Applies configuration. Supports the following config vars:
+
+=over 4
+
+=item * opened_connection - coderef which will be called when a new connection is opened
+
+=item * finish_connection - coderef called on connection close
+
+=item * skip_check_sanity - actions for which sanity checks will not be applied
+
+=back
+
+Returns an empty list.
+
+=cut
+
 sub init {
     my ($self, $in_config) = @_;
 
@@ -21,6 +43,14 @@ sub init {
     $self->{config} = $in_config;
     return;
 }
+
+=head2 add_action
+
+Adds an action to the list of handlers.
+
+Expects C<$action> as an arrayref, and an C<$order> in which the action should be applied.
+
+=cut
 
 sub add_action {
     my ($self, $action, $order) = @_;
