@@ -13,7 +13,7 @@ __END__
 
 Mojo::WebSocketProxy - WebSocket proxy for JSON-RPC 2.0 server
 
-=head1 SYNOPSYS
+=head1 SYNOPSIS
 
     # lib/your-application.pm
 
@@ -48,8 +48,8 @@ Or to manually call RPC server:
                         {
                             instead_of_forward => sub {
                                 shift->call_rpc({
-                                    args => $args,
-                                    method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
+                                    args   => [ qw(args here) ],
+                                    method => 'json_key', # it'll call 'http://rpc-host.com:8080/json_key'
                                     rpc_response_cb => sub {...}
                                 });
                             }
