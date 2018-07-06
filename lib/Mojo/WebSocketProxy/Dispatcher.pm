@@ -9,7 +9,7 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
-use JSON::MaybeUTF8;
+use JSON::MaybeUTF8 qw(encode_json_utf8);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
