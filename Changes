@@ -1,6 +1,8 @@
 Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
+
+0.07      2018-07-06 13:11:47+08:00 Asia/Manila
     - Add warning with transaction details failure, if available.
     - Don't bother removing args from req storage after SanityCheckFailed.
     - Normalise received JSON via NFC
