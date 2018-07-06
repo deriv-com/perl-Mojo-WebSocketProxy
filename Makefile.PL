@@ -26,7 +26,6 @@ my %WriteMakefileArgs = (
   "NAME" => "Mojo::WebSocketProxy",
   "PREREQ_PM" => {
     "Class::Method::Modifiers" => 0,
-    "Data::UUID" => 0,
     "Future" => 0,
     "Guard" => 0,
     "JSON" => 0,
