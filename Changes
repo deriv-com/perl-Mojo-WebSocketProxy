@@ -2,6 +2,9 @@ Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
 
+0.08      2018-07-09 10:08:29+08:00 Asia/Manila
+    - Fix Changelog
+
 0.07      2018-07-06 13:11:47+08:00 Asia/Manila
     - Add warning with transaction details failure, if available.
     - Don't bother removing args from req storage after SanityCheckFailed.
