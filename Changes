@@ -6,9 +6,7 @@ Revision history for Perl module Mojo::WebSocketProxy
     - Add warning with transaction details failure, if available.
     - Don't bother removing args from req storage after SanityCheckFailed.
     - Normalise received JSON via NFC
-
-0.07      2017-08-29 03:04:42 UTC 2017
-    Add binary_frame hook to capture binary uploaded data.
+    - Add binary_frame hook to capture binary uploaded data.
 
 0.06      2017-06-01 03:05:17+00:00 UTC
     This introduces support for callbacks which return Future instances,
