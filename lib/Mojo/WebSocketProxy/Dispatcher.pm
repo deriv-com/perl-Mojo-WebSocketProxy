@@ -60,11 +60,11 @@ sub open_connection {
 
     $config->{opened_connection}->($c) if $config->{opened_connection};
 
-    $c->on(message => sub {
+    $c->on(text => sub {
         my ($c, $msg) = @_;
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
-        my $args = Mojo::JSON::decode_json(Unicode::Normalize::NFC($msg));
+        my $args = eval { Mojo::JSON::decode_json(Unicode::Normalize::NFC($msg)) };
         on_message($c, $args);
     });
 
