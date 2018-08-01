@@ -9,7 +9,7 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
-use JSON::MaybeUTF8 qw(encode_json_utf8);
+use JSON::MaybeUTF8 qw(:v1);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
@@ -60,11 +60,13 @@ sub open_connection {
 
     $config->{opened_connection}->($c) if $config->{opened_connection};
 
-    $c->on(message => sub {
+    $c->on(text => sub {
         my ($c, $msg) = @_;
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
-        my $args = Mojo::JSON::decode_json(Unicode::Normalize::NFC($msg));
+        my $normalized_msg = Unicode::Normalize::NFC($msg);
+        my $args = eval { decode_json_utf8($normalized_msg) };
+        $log->error("JSON decoding $normalized_msg failed: $@") if $@;
         on_message($c, $args);
     });
 
