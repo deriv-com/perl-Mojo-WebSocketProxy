@@ -10,7 +10,7 @@ requires 'IO::Async::Loop::Mojo';
 requires 'Scalar::Util';
 requires 'Unicode::Normalize', '>= 1.25';
 requires 'perl', '5.014';
-
+requires 'Log::Any', 0;
 requires 'Job::Async', 0;
 
 on configure => sub {
