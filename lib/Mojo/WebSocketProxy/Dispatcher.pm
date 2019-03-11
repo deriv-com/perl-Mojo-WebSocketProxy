@@ -16,6 +16,8 @@ use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
+use Encode;
+use DataDog::DogStatsd::Helper qw(stats_inc);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
@@ -70,15 +72,25 @@ sub open_connection {
 
     $c->on(text => sub {
         my ($c, $msg) = @_;
-        # Incoming data will be JSON-formatted text, as a Unicode string.
-        # We normalize the entire string before decoding.
-        my $normalized_msg = Unicode::Normalize::NFC($msg);
-        if (my $args = eval { decode_json_utf8($normalized_msg) }) {
-            on_message($c, $args);
-        } else {
+        my $original = "$msg";
+        try {
+            # Incoming data will be JSON-formatted text, as a Unicode string.
+            # We normalize the entire string before decoding.
+            my $normalized_msg = Unicode::Normalize::NFC(Encode::decode_utf8($msg));
+            if (my $args = eval { decode_json_text($normalized_msg) }) {
+                on_message($c, $args);
+            } else {
+                stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
+                warn "PROXY_BYTE byte code to debug utf issue: " . sprintf("%v02x\n", $original);
+                $log->debug(qq{JSON decoding failed for "$normalized_msg": $@});
+                $c->finish(1007 => 'Malformed JSON');
+            }
+        } catch {
+            stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
+            warn "PROXY_BYTE byte code to debug utf issue: " . sprintf("%v02x\n", $original);
+            warn "== PROXY_BYTE error - $_";
             $c->finish(1007 => 'Malformed JSON');
-            $log->debug(qq{JSON decoding failed for "$normalized_msg": $@});
-        }
+        };
     });
 
     $c->on(binary => sub {
