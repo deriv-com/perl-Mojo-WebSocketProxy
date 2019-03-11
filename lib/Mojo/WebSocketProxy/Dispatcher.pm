@@ -9,6 +9,8 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
+use Try::Tiny;
+use Data::Dumper;
 use JSON::MaybeUTF8 qw(:v1);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
@@ -21,21 +23,27 @@ use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
 
-    my $config = $c->wsp_config->{config};
+    my $ret;
+    try {
+        my $config = $c->wsp_config->{config};
 
-    my $max_response_size = $config->{max_response_size};
-    if ($max_response_size && length(encode_json_utf8($api_response)) > $max_response_size) {
-        $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
-    }
+        my $max_response_size = $config->{max_response_size};
+        if ($max_response_size && length(encode_json_utf8($api_response)) > $max_response_size) {
+            $api_response->{json} = $c->wsp_error('error', 'ResponseTooLarge', 'Response too large.');
+        }
 
-    my $before_send_api_response = $config->{before_send_api_response};
-    $_->($c, $req_storage, $api_response->{json})
-        for grep { $_ } (ref $before_send_api_response eq 'ARRAY' ? @{$before_send_api_response} : $before_send_api_response);
+        my $before_send_api_response = $config->{before_send_api_response};
+        $_->($c, $req_storage, $api_response->{json})
+            for grep { $_ } (ref $before_send_api_response eq 'ARRAY' ? @{$before_send_api_response} : $before_send_api_response);
 
-    my $ret = $orig->($c, $api_response);
+        $ret = $orig->($c, $api_response);
 
-    my $after_sent_api_response = $config->{after_sent_api_response};
-    $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
+        my $after_sent_api_response = $config->{after_sent_api_response};
+        $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
+    } catch {
+        warn "== PROXY_ERROR: on send - $_";
+        $ret = $orig->($c, $api_response);
+    };
 
     return $ret;
 };
@@ -86,59 +94,72 @@ sub open_connection {
 sub on_message {
     my ($c, $args) = @_;
 
-    my $config = $c->wsp_config->{config};
+    warn "== PROXY on message ==" if exists $args->{new_account_maltainvest};
+    return try {
+        my $config = $c->wsp_config->{config};
 
-    my $req_storage = {};
-    $req_storage->{args} = $args;
+        my $req_storage = {};
+        $req_storage->{args} = $args;
 
-    # We still want to run any hooks even for invalid requests.
-    if(my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
-        $c->send({json => $err}, $req_storage);
-        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
-    }
+        # We still want to run any hooks even for invalid requests.
+        if(my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
+            $c->send({json => $err}, $req_storage);
+            return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+        }
 
-    my $action = $c->dispatch($args) or do {
-        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
-        $c->send({json => $err }, $req_storage);
-        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
-    };
+        my $action = $c->dispatch($args) or do {
+            my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
+            $c->send({json => $err }, $req_storage);
+            return $c->_run_hooks($config->{after_dispatch} || [])->retain;
+        };
 
-    @{$req_storage}{keys %$action} = (values %$action);
-    $req_storage->{method} = $req_storage->{name};
+        @{$req_storage}{keys %$action} = (values %$action);
+        $req_storage->{method} = $req_storage->{name};
 
-    # main processing pipeline
-    my $f = $c->before_forward(
-        $req_storage
-    )->transform(done => sub {
-        # Note that we completely ignore the return value of ->before_forward here.
-        return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
-        return $c->forward($req_storage);
-    })->then(sub {
-        my $result = shift;
-        return $c->after_forward(
-            $result,
+        # main processing pipeline
+        my $f = $c->before_forward(
             $req_storage
-        )->transform(done => sub { $result })
-    }, sub {
-        my $result = shift;
-        Future->done($result);
-    });
+        )->transform(done => sub {
+            # Note that we completely ignore the return value of ->before_forward here.
+            return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
+            return $c->forward($req_storage);
+        })->then(sub {
+            my $result = shift;
+            return $c->after_forward(
+                $result,
+                $req_storage
+            )->transform(done => sub { $result })
+        }, sub {
+            my $result = shift;
+            Future->done($result);
+        });
 
-    return Future->wait_any(
-        Future::Mojo->new_timeout(TIMEOUT)->else(sub {
-            return Future->done($c->wsp_error('error', Timeout => 'Timeout'))
-        }),
-        $f
-    )->then(sub {
-        my ($result) = @_;
-        $c->send({json => $result}, $req_storage) if $result;
-        return $c->_run_hooks($config->{after_dispatch} || []);
-    })->retain;
+        $f->on_fail(sub {
+            warn "== PROXY_ERROR: @_";
+        });
+
+        return Future->wait_any(
+            Future::Mojo->new_timeout(TIMEOUT)->else(sub {
+                return Future->done($c->wsp_error('error', Timeout => 'Timeout'))
+            }),
+            $f
+        )->then(sub {
+            my ($result) = @_;
+            $c->send({json => $result}, $req_storage) if $result;
+            return $c->_run_hooks($config->{after_dispatch} || []);
+        })->on_fail(sub {
+            warn "== PROXY_ERROR: fail all @_";
+        })->retain;
+    } catch {
+        warn "== PROXY_ERROR: on message " . Dumper($_);
+        return Future->done;
+    };
 }
 
 sub before_forward {
     my ($c, $req_storage) = @_;
 
+    warn "== PROXY before forward ==" if ($req_storage->{name} // '') eq 'new_account_maltainvest';
     my $config = $c->wsp_config->{config};
 
     my $before_forward_hooks = [ ];
@@ -166,27 +187,39 @@ sub _run_hooks {
     my $c           = shift @hook_params;
     my $hooks       = shift @hook_params;
 
-    my $result_f = fmap {
-        my $hook = shift;
-        my $result = $hook->($c, @hook_params) or return Future->done;
-        return $result if blessed($result) && $result->isa('Future');
-        return Future->fail($result);
-    } foreach        => [grep { defined } @$hooks], concurrent => 1;
-    return $result_f;
+    if (@hook_params) {
+        warn "== PROXY run hooks ==" if $hook_params[0] and ($hook_params[0]->{name} // $hook_params[0]->{msg_type} // '') eq 'new_account_maltainvest';
+    }
+    return try {
+        my $result_f = fmap {
+            my $hook = shift;
+            my $result = $hook->($c, @hook_params) or return Future->done;
+            return $result if blessed($result) && $result->isa('Future');
+            return Future->fail($result);
+        } foreach        => [grep { defined } @$hooks], concurrent => 1;
+        return $result_f;
+    } catch {
+        warn "== PROXY_ERROR: on running hooks " . Dumper($_);
+        return Future->done;
+    };
 }
 
 sub dispatch {
     my ($c, $args) = @_;
 
-    my $log = $c->app->log;
-    $log->debug("websocket got json " . $c->dumper($args));
+    return try {
+        my $log = $c->app->log;
+        $log->debug("websocket got json " . $c->dumper($args));
 
-    my ($action) =
-        sort { $a->{order} <=> $b->{order} }
-        grep { defined }
-        map  { $c->wsp_config->{actions}->{$_} } keys %$args;
+        my ($action) =
+            sort { $a->{order} <=> $b->{order} }
+            grep { defined }
+            map  { $c->wsp_config->{actions}->{$_} } keys %$args;
 
-    return $action;
+        return $action;
+    } catch {
+        warn "== PROXY_ERROR: dispatch error " . Dumper($_);
+    };
 }
 
 sub forward {
