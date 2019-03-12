@@ -72,12 +72,14 @@ sub open_connection {
             stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
             warn qq{PROXY_ERROR: UTF-8 decoding failed for "$msg": $@};
             $c->finish(1007 => 'Malformed UTF-8 data');
+            return;
         };
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
             stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
             warn qq{PROXY_ERROR: Unicode normalisation failed for "$decoded": $@};
             $c->finish(1007 => 'Malformed Unicode data');
+            return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
@@ -85,6 +87,7 @@ sub open_connection {
             warn "PROXY_ERROR: PROXY_BYTE byte code to debug utf issue: " . sprintf("%v02x\n", $original);
             warn qq{PROXY_ERROR: JSON decoding failed for "$normalized_msg": $@};
             $c->finish(1007 => 'Malformed JSON data');
+            return;
         };
 
         on_message($c, $args);
@@ -151,7 +154,7 @@ sub on_message {
         $c->send({json => $result}, $req_storage) if $result;
         return $c->_run_hooks($config->{after_dispatch} || []);
     })->on_fail(sub {
-        warn "== PROXY_ERROR: fail all @_";
+        warn "PROXY_ERROR: fail all @_";
     })->retain;
 }
 
