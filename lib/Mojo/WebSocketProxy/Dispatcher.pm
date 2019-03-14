@@ -14,6 +14,8 @@ use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
+use Encode;
+use DataDog::DogStatsd::Helper qw(stats_inc);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
@@ -62,15 +64,29 @@ sub open_connection {
 
     $c->on(text => sub {
         my ($c, $msg) = @_;
+
+        my $original = "$msg";
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
-        my $normalized_msg = Unicode::Normalize::NFC($msg);
-        if (my $args = eval { decode_json_utf8($normalized_msg) }) {
-            on_message($c, $args);
-        } else {
-            $c->finish(1007 => 'Malformed JSON');
-            $log->debug(qq{JSON decoding failed for "$normalized_msg": $@});
-        }
+        my $decoded = eval { Encode::decode_utf8($msg) } or do {
+            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
+            $c->finish(1007 => 'Malformed UTF-8 data');
+            return;
+        };
+
+        my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
+            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
+            $c->finish(1007 => 'Malformed Unicode data');
+            return;
+        };
+
+        my $args = eval { decode_json_text($normalized_msg); } or do {
+            stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
+            $c->finish(1007 => 'Malformed JSON data');
+            return;
+        };
+
+        on_message($c, $args);
     });
 
     $c->on(binary => sub {
@@ -92,14 +108,14 @@ sub on_message {
     $req_storage->{args} = $args;
 
     # We still want to run any hooks even for invalid requests.
-    if(my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
+    if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
         $c->send({json => $err}, $req_storage);
         return $c->_run_hooks($config->{after_dispatch} || [])->retain;
     }
 
     my $action = $c->dispatch($args) or do {
         my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
-        $c->send({json => $err }, $req_storage);
+        $c->send({json => $err}, $req_storage);
         return $c->_run_hooks($config->{after_dispatch} || [])->retain;
     };
 
@@ -133,6 +149,8 @@ sub on_message {
         my ($result) = @_;
         $c->send({json => $result}, $req_storage) if $result;
         return $c->_run_hooks($config->{after_dispatch} || []);
+    })->on_fail(sub {
+        $c->app->log->error("An error occurred handling on_message. Error @_");
     })->retain;
 }
 
@@ -141,7 +159,7 @@ sub before_forward {
 
     my $config = $c->wsp_config->{config};
 
-    my $before_forward_hooks = [ ];
+    my $before_forward_hooks = [];
 
     # Global hooks are always first
     for ($config, $req_storage) {
@@ -202,8 +220,8 @@ sub forward {
     }
 
     my $backend_name = $req_storage->{backend} // "default";
-    my $backend = $c->wsp_config->{backends}{$backend_name} or
-        die "Cannot dispatch request - no backend named '$backend_name'";
+    my $backend = $c->wsp_config->{backends}{$backend_name}
+        or die "Cannot dispatch request - no backend named '$backend_name'";
 
     $backend->call_rpc($c, $req_storage);
 
