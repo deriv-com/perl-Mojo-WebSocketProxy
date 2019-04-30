@@ -94,9 +94,7 @@ sub open_connection {
                 $error_msg = 'Malformed JSON data';
             };
         }
-        
-        my %error = (error_code => $error_code, error_msg => $error_msg);
-        
+
         if ($malformed_data_flag){
             $c->on_error($error_code, $error_msg);
             $c->finish($error_code => $error_msg);
