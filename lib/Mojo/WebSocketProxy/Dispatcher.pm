@@ -65,24 +65,33 @@ sub open_connection {
     $c->on(text => sub {
         my ($c, $msg) = @_;
 
+        my $error_code = 1007;
+        my $error_msg;
+
         my $original = "$msg";
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed UTF-8 data');
+            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ["error_code:$error_code"]});
+            $error_msg = 'Malformed UTF-8 data';
+            $c->log_error($error_code, $error_msg);
+            $c->finish($error_code => $error_msg);
             return;
         };
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed Unicode data');
+            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ["error_code:$error_code"]});
+            $error_msg = 'Malformed Unicode data';
+            $c->log_error($error_code, $error_msg);
+            $c->finish($error_code => $error_msg);
             return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
-            stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed JSON data');
+            stats_inc("websocket_proxy.malformed_json.failure", {tags => ["error_code:$error_code"]});
+            $error_msg = 'Malformed JSON data';
+            $c->log_error($error_code, $error_msg);
+            $c->finish($error_code => $error_msg);
             return;
         };
 
