@@ -64,38 +64,46 @@ sub open_connection {
 
     $c->on(text => sub {
         my ($c, $msg) = @_;
-
+        
         my $error_code = 1007;
         my $error_msg;
-
+        
         my $original = "$msg";
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ["error_code:$error_code"]});
+            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
+            $malformed_data_flag = 1;
             $error_msg = 'Malformed UTF-8 data';
-            $c->log_error($error_code, $error_msg);
+        };
+        
+        my $normalized_msg;
+        unless ($malformed_data_flag){
+            $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
+                stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
+                $malformed_data_flag = 1;
+                $error_msg = 'Malformed Unicode data';
+            };
+        }
+
+        my $args;
+        unless ($malformed_data_flag){
+            $args = eval { decode_json_text($normalized_msg); } or do {
+                stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
+                $malformed_data_flag = 1;
+                $error_msg = 'Malformed JSON data';
+            };
+        }
+        
+        my %error = (error_code => $error_code, error_msg => $error_msg);
+        
+        if ($malformed_data_flag){
+            $c->on_error($error_code, $error_msg);
             $c->finish($error_code => $error_msg);
             return;
-        };
-
-        my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ["error_code:$error_code"]});
-            $error_msg = 'Malformed Unicode data';
-            $c->log_error($error_code, $error_msg);
-            $c->finish($error_code => $error_msg);
-            return;
-        };
-
-        my $args = eval { decode_json_text($normalized_msg); } or do {
-            stats_inc("websocket_proxy.malformed_json.failure", {tags => ["error_code:$error_code"]});
-            $error_msg = 'Malformed JSON data';
-            $c->log_error($error_code, $error_msg);
-            $c->finish($error_code => $error_msg);
-            return;
-        };
-
-        on_message($c, $args);
+        } else {
+            on_message($c, $args);
+        }
     });
 
     $c->on(binary => sub {
