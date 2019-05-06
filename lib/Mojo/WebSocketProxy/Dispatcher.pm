@@ -69,20 +69,41 @@ sub open_connection {
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed UTF-8 data');
+            $config->{on_error}({
+                error    => 'Error Processing Request',
+                details  => { 
+                    connection      => $c,
+                    error_code      => 'INVALID_UTF8',
+                    reason          => 'Malformed UTF-8 data',
+                    request_body    => $msg,
+                },
+                }) if exists $config->{on_error};
             return;
         };
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed Unicode data');
+            $config->{on_error}({
+                code     => 'Error Processing Request',
+                details  => { 
+                    connection      => $c,
+                    error_code      => 'INVALID_UNICODE',
+                    reason          => 'Malformed Unicode data',
+                    request_body    => $msg,
+                },
+                }) if exists $config->{on_error};
             return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
-            stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed JSON data');
+            $config->{on_error}({
+                code     => 'Error Processing Request',
+                details  => { 
+                    connection      => $c,
+                    error_code      => 'INVALID_JSON',
+                    reason          => 'Malformed JSON data',
+                    request_body    => $msg,
+                },
+                }) if exists $config->{on_error};
             return;
         };
 
@@ -94,12 +115,7 @@ sub open_connection {
         $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
     });
 
-    $c->on(
-        finish => sub {
-            my ($d, $code, $error_message) = @_;
-            $config->{log_error_on_finish}(@_) if $error_message and exists $config->{log_error_on_finish};
-            $config->{finish_connection} if $config->{finish_connection};
-            });
+    $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
 
     return;
 }

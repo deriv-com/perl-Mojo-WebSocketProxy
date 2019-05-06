@@ -28,7 +28,7 @@ package t::FrontEnd {
 test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
-    $t->send_ok({json => 'invalid'})->finished_ok(1007);
+    $t->send_ok({json => 'invalid'});
 } 't::FrontEnd';
 
 done_testing;
