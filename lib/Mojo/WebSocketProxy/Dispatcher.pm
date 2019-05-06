@@ -94,7 +94,12 @@ sub open_connection {
         $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
     });
 
-    $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
+    $c->on(
+        finish => sub {
+            my ($d, $code, $error_message) = @_;
+            $config->{log_error}(@_) if $error_message and exists $config->{log_error};
+            $config->{finish_connection} if $config->{finish_connection};
+            });
 
     return;
 }
