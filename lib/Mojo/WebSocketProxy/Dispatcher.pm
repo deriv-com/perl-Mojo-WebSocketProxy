@@ -97,7 +97,7 @@ sub open_connection {
     $c->on(
         finish => sub {
             my ($d, $code, $error_message) = @_;
-            $config->{log_error}(@_) if $error_message and exists $config->{log_error};
+            $config->{log_error_on_finish}(@_) if $error_message and exists $config->{log_error_on_finish};
             $config->{finish_connection} if $config->{finish_connection};
             });
 
