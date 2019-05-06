@@ -2,6 +2,10 @@ Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
 
+0.12      2019-05-06 13:57:54+08:00 Asia/Minila
+    - Added log_error_on_finish callback for logging errors in 
+      Dispatcher::open_connection() under on=>finish.
+
 0.11      2018-08-15 13:03:25+08:00 Asia/Manila
     - Fix test dependencies (switching from build phase,) adding Path::Tiny.
 
