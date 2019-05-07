@@ -232,11 +232,11 @@ Global hook which will run immediately before send API response.
 
 Global hook which will run immediately after sent API response back to client.
 
-##### log\_error\_on\_finish (global)
+##### on\_error (global)
 
-    log_error_on_finish => [sub { my ($d, $code, $error_msg) = @_; ... }, sub {...}]
+    on_error => sub { my ($d, $code, $error_msg) = @_; ... };
 
-Global hook which will run before finish_connection to log any error.
+Global hook which will run immediately if any error is detected.
 
 ##### base\_path
 
