@@ -69,41 +69,41 @@ sub open_connection {
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            $config->{on_error}({
-                error    => 'Error Processing Request',
-                details  => { 
-                    connection      => $c,
-                    error_code      => 'INVALID_UTF8',
-                    reason          => 'Malformed UTF-8 data',
-                    request_body    => $msg,
-                },
-                }) if exists $config->{on_error};
+            $c->tx->emit(
+                on_error    => {
+                    error   => 'Error Processing Request',
+                    details => {
+                        error_code      => 'INVALID_UTF8',
+                        reason          => 'Malformed UTF-8 data',
+                        request_body    => $msg,
+                    },
+                });
             return;
         };
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            $config->{on_error}({
-                code     => 'Error Processing Request',
-                details  => { 
-                    connection      => $c,
-                    error_code      => 'INVALID_UNICODE',
-                    reason          => 'Malformed Unicode data',
-                    request_body    => $msg,
-                },
-                }) if exists $config->{on_error};
+            $c->tx->emit(
+                on_error     => {
+                    code     => 'Error Processing Request',
+                    details  => { 
+                        error_code      => 'INVALID_UNICODE',
+                        reason          => 'Malformed Unicode data',
+                        request_body    => $msg,
+                    },
+                });
             return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
-            $config->{on_error}({
-                code     => 'Error Processing Request',
-                details  => { 
-                    connection      => $c,
-                    error_code      => 'INVALID_JSON',
-                    reason          => 'Malformed JSON data',
-                    request_body    => $msg,
-                },
-                }) if exists $config->{on_error};
+            $c->tx->emit(
+                on_error     => {
+                code         => 'Error Processing Request',
+                    details  => { 
+                        error_code      => 'INVALID_JSON',
+                        reason          => 'Malformed JSON data',
+                        request_body    => $msg,
+                    },
+                });
             return;
         };
 
