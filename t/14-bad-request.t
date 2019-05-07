@@ -20,15 +20,22 @@ package t::FrontEnd {
                 ],
                 base_path => '/api',
                 url => $ENV{T_TestWSP_RPC_URL} // die("T_TestWSP_RPC_URL is not defined"),
+                on_error => \&handle_error
              }
          );
+    }
+    
+    sub handle_error {
+        my $all_data = shift;
+        my $c        = $all_data->{details}->{connection};
+        $c->finish();
     }
 };
 
 test_wsp {
     my ($t) = @_;
     $t->websocket_ok('/api' => {});
-    $t->send_ok({json => 'invalid'});
+    $t->send_ok({json => 'invalid'})->finish_ok();
 } 't::FrontEnd';
 
 done_testing;
