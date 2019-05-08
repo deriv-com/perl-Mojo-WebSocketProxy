@@ -2,12 +2,6 @@ Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
 
-0.12      2019-05-06 16:57:54+08:00 Asia/Minila
-    - Removed error 1007 when recieve invalid request
-    - Replace error handling in Dispatcher::open_connection with emitting a
-      event to be handled in open_connection callback (can be handled by 
-      $c->on(on_error => sub {...} ))
-
 0.11      2018-08-15 13:03:25+08:00 Asia/Manila
     - Fix test dependencies (switching from build phase,) adding Path::Tiny.
 
