@@ -70,7 +70,7 @@ sub open_connection {
         # We normalize the entire string before decoding.
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
             $c->tx->emit(
-                on_error    => {
+                encoding_error   => {
                     error   => 'Error Processing Request',
                     details => {
                         error_code      => 'INVALID_UTF8',
@@ -83,7 +83,7 @@ sub open_connection {
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
             $c->tx->emit(
-                on_error     => {
+                encoding_error   => {
                     code     => 'Error Processing Request',
                     details  => { 
                         error_code      => 'INVALID_UNICODE',
@@ -96,7 +96,7 @@ sub open_connection {
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
             $c->tx->emit(
-                on_error     => {
+                encoding_error   => {
                 code         => 'Error Processing Request',
                     details  => { 
                         error_code      => 'INVALID_JSON',
