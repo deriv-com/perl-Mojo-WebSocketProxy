@@ -68,42 +68,19 @@ sub open_connection {
         my $original = "$msg";
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
+
         my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            $c->tx->emit(
-                encoding_error   => {
-                    error   => 'Error Processing Request',
-                    details => {
-                        error_code      => 'INVALID_UTF8',
-                        reason          => 'Malformed UTF-8 data',
-                        request_body    => $msg,
-                    },
-                });
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UTF8', reason => 'Malformed UTF-8 data', message => $msg));
             return;
         };
 
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            $c->tx->emit(
-                encoding_error   => {
-                    code     => 'Error Processing Request',
-                    details  => { 
-                        error_code      => 'INVALID_UNICODE',
-                        reason          => 'Malformed Unicode data',
-                        request_body    => $msg,
-                    },
-                });
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UNICODE', reason => 'Malformed Unicode data', message => $msg));
             return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
-            $c->tx->emit(
-                encoding_error   => {
-                code         => 'Error Processing Request',
-                    details  => { 
-                        error_code      => 'INVALID_JSON',
-                        reason          => 'Malformed JSON data',
-                        request_body    => $msg,
-                    },
-                });
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_JSON', reason => 'Malformed JSON data', message => $msg));
             return;
         };
 
@@ -249,6 +226,19 @@ sub forward {
     return;
 }
 
+sub _get_error_details {
+    my (%args) = @_;
+
+    return {
+            error   => 'Error Processing Request',
+            details => {
+                error_code   => $args{code},
+                reason       => $args{reason},
+                request_body => $args{message},
+            },
+    };
+}
+
 1;
 
 __END__
@@ -296,6 +286,10 @@ Dispatch request using message json key.
 Forward call to RPC server using global and action hooks.
 Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
+
+=head2 _get_error_details
+
+Generates and returns a hash for error reporting
 
 =head2 ok
 
