@@ -73,7 +73,7 @@ sub open_connection {
             $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UTF8', reason => 'Malformed UTF-8 data', message => $msg));
             return;
         };
-
+        # The Unicode check is added as a safety net. However, the error is not triggered so far.
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
             $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UNICODE', reason => 'Malformed Unicode data', message => $msg));
             return;
