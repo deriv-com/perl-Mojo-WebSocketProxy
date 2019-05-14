@@ -69,7 +69,7 @@ sub open_connection {
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
 
-        my $decoded = eval { Encode::decode_utf8($msg) } or do {
+        my $decoded = eval { Encode::decode_utf8($msg, Encode::FB_CROAK) } or do {
             $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UTF8', reason => 'Malformed UTF-8 data', message => $msg));
             return;
         };
