@@ -68,21 +68,20 @@ sub open_connection {
         my $original = "$msg";
         # Incoming data will be JSON-formatted text, as a Unicode string.
         # We normalize the entire string before decoding.
-        my $decoded = eval { Encode::decode_utf8($msg) } or do {
-            stats_inc("websocket_proxy.utf8_decoding.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed UTF-8 data');
+
+        my $decoded = eval { Encode::decode_utf8($msg, Encode::FB_CROAK) } or do {
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UTF8', reason => 'Malformed UTF-8 data', message => $msg));
             return;
         };
 
+        # The Unicode::Normalize::NFC check is added as a safety net. However, the error is not triggered so far.
         my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            stats_inc("websocket_proxy.unicode_normalisation.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed Unicode data');
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UNICODE', reason => 'Malformed Unicode data', message => $msg));
             return;
         };
 
         my $args = eval { decode_json_text($normalized_msg); } or do {
-            stats_inc("websocket_proxy.malformed_json.failure", {tags => ['error_code:1007']});
-            $c->finish(1007 => 'Malformed JSON data');
+            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_JSON', reason => 'Malformed JSON data', message => $msg));
             return;
         };
 
@@ -228,6 +227,19 @@ sub forward {
     return;
 }
 
+sub _get_error_details {
+    my (%args) = @_;
+
+    return {
+            error   => 'Error Processing Request',
+            details => {
+                error_code   => $args{code},
+                reason       => $args{reason},
+                request_body => $args{message},
+            },
+    };
+}
+
 1;
 
 __END__
@@ -275,6 +287,10 @@ Dispatch request using message json key.
 Forward call to RPC server using global and action hooks.
 Don't forward call to RPC if any before_forward hook returns response.
 Or if there is instead_of_forward action.
+
+=head2 _get_error_details
+
+Generates and returns a hash for error reporting
 
 =head2 ok
 
