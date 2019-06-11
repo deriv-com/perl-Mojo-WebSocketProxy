@@ -37,7 +37,8 @@ around 'send' => sub {
     my $ret = $orig->($c, $api_response);
 
     my $after_sent_api_response = $config->{after_sent_api_response};
-    $_->($c, $req_storage) for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
+    $_->($c, $req_storage, $api_response->{json})
+        for grep { $_ } (ref $after_sent_api_response eq 'ARRAY' ? @{$after_sent_api_response} : $after_sent_api_response);
 
     return $ret;
 };

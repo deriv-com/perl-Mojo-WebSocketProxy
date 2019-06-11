@@ -174,7 +174,7 @@ Global hooks which will run immediately before send API response.
 
 =head2 after_sent_api_response (global)
 
-    before_send_api_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
+    after_sent_api_response => [sub { my ($c, $req_storage, $api_response) = @_; ... }, sub {...}]
 
 Global hooks which will run immediately after sent API response.
 
