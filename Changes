@@ -1,6 +1,8 @@
 Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
+    - Add api response to after_sent_api_response call.
+    - Fix typo in pod.
 
 0.11      2018-08-15 13:03:25+08:00 Asia/Manila
     - Fix test dependencies (switching from build phase,) adding Path::Tiny.
