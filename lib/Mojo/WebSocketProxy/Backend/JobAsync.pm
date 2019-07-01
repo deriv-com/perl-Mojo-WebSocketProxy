@@ -9,6 +9,7 @@ no indirect;
 
 use IO::Async::Loop::Mojo;
 use Job::Async;
+use JSON::MaybeUTF8 qw(encode_json_utf8);
 
 use Log::Any qw($log);
 
@@ -71,12 +72,13 @@ sub new {
                 require IO::Async::Loop::Mojo;
                 IO::Async::Loop::Mojo->new;
             };
+            $self->{loop} = $loop;
             $loop->add(
                 $jobman = Job::Async->new
             );
         }
 
-        $jobman->client;
+        $jobman->client(redis => $self->{redis});
     };
     return $self;
 }
@@ -119,7 +121,8 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
-        data => $req_storage
+        name => $req_storage->{name},
+        params => encode_json_utf8($req_storage->{call_params}{args})
     )->on_ready(sub {
         my ($f) = @_;
         $log->debugf('->submit completion: ', $f->state);
