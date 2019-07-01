@@ -121,6 +121,7 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
+        data => $req_storage,
         name => $req_storage->{name},
         params => encode_json_utf8($req_storage->{call_params}{args})
     )->on_ready(sub {
