@@ -13,7 +13,7 @@ use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 
 use Log::Any qw($log);
 
-our $VERSION = '0.11';    ## VERSION
+## VERSION
 
 __PACKAGE__->register_type('job_async');
 
