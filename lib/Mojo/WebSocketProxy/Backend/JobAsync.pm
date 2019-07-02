@@ -9,7 +9,7 @@ no indirect;
 
 use IO::Async::Loop::Mojo;
 use Job::Async;
-use JSON::MaybeUTF8 qw(encode_json_utf8);
+use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 
 use Log::Any qw($log);
 
@@ -80,6 +80,7 @@ sub new {
 
         $jobman->client(redis => $self->{redis});
     };
+    $self->client->start->get;
     return $self;
 }
 
@@ -121,7 +122,6 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
-        data => $req_storage,
         name => $req_storage->{name},
         params => encode_json_utf8($req_storage->{call_params}{args})
     )->on_ready(sub {
@@ -135,9 +135,12 @@ sub call_rpc {
 
         my $api_response;
         if($f->is_done) {
-            my ($result) = $f->get;
+            my ($result) = decode_json_utf8($f->get);
 
+            use Try::Tiny;
+            try{
             $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
+        } catch {warn shift};
 
             $api_response = $rpc_response_cb->($result);
         }
