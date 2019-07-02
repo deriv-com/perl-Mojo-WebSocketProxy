@@ -10,7 +10,6 @@ no indirect;
 use IO::Async::Loop::Mojo;
 use Job::Async;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
-use Syntax::Keyword::Try;
 
 use Log::Any qw($log);
 
@@ -121,8 +120,9 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
+        data   => $req_storage,
         name   => $req_storage->{name},
-        params => encode_json_utf8($req_storage->{call_params}{args})
+        params => encode_json_utf8($params) 
         )->on_ready(
         sub {
             my ($f) = @_;
@@ -139,6 +139,7 @@ sub call_rpc {
                 my $result = MojoX::JSON::RPC::Client::ReturnObject->new(
                     rpc_response => decode_json_utf8($f->get)
                 );
+
                 $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
                 $api_response = $rpc_response_cb->($result->result);
             } else {
