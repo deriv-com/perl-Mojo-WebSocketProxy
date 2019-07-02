@@ -99,14 +99,12 @@ test_wsp {
         my @job_callbacks = (
             sub {
                 my ($job) = @_;
-                note "CALLBACK DONE".explain($job);
                 is($job->id, 1000, 'have correct ID');
                 is($job->data('method'), 'faraway', 'method was correct');
                 $job->done(encode_json_utf8({result => 'everything worked'}));
             },
             sub {
                 my ($job) = @_;
-                note "CALLBACK FAIL".explain($job);
                 is($job->id, 1001, 'have correct ID');
                 is($job->data('method'), 'faraway', 'method was correct');
                 $job->fail('everything broke');
