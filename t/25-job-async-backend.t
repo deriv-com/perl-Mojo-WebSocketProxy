@@ -41,14 +41,12 @@ package t::SampleWorker {
 
     sub trigger {
         my ($self) = @_;
-        $self->{active} ||= (repeat {
+        repeat {
             if(my $job = shift(@::PENDING_JOBS)) {
                 $self->process($job);
             }
             return Future->done;
-        } while => sub { 0 + @::PENDING_JOBS })->on_ready(sub {
-            delete $self->{active}
-        })
+        } while => sub { 0 + @::PENDING_JOBS }
     }
 
     sub process {
