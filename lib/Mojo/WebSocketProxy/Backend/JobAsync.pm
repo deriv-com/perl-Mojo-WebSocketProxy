@@ -77,7 +77,6 @@ sub new {
         }
 
         $self->{client} = $jobman->client(redis => $self->{redis});
-        $self->{client}->start->get;
     };
     return $self;
 }
@@ -106,6 +105,8 @@ sub call_rpc {
     my ($self, $c, $req_storage) = @_;
     my $method = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
+    # Prepare client before submitting a call. 
+    $self->{client}->start->get;
 
     $req_storage->{call_params} ||= {};
 
@@ -120,7 +121,6 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
-        data   => $req_storage,
         name   => $req_storage->{name},
         params => encode_json_utf8($params) 
         )->on_ready(
