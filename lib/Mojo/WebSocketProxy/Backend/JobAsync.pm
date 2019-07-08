@@ -66,7 +66,7 @@ sub new {
     # We'd like to provide some flexibility for people trying to integrate this into
     # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
     # instance can be provided here.
-    $self->{client} // do {
+    $self->{client} //= do {
         unless($jobman) {
             # We don't hold a ref to this, since that might introduce unfortunate cycles
             $loop //= do {
@@ -79,7 +79,7 @@ sub new {
             );
         }
 
-        $self->{client} = $jobman->client(redis => $self->{redis});
+        $jobman->client(redis => $self->{redis});
     };
     return $self;
 }
