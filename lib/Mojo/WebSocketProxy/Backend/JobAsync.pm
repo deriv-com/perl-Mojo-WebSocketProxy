@@ -11,6 +11,8 @@ use IO::Async::Loop::Mojo;
 use Job::Async;
 use MojoX::JSON::RPC::Client;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
+use DataDog::DogStatsd::Helper qw(stats_gauge stats_inc);
+use Time::HiRes;
 
 use Log::Any qw($log);
 
@@ -111,7 +113,6 @@ sub call_rpc {
     $self->{client}->start->get;
 
     $req_storage->{call_params} ||= {};
-
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
 
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
@@ -119,12 +120,11 @@ sub call_rpc {
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $params = $self->make_call_params($c, $req_storage);
     $log->debugf("method %s has params = %s", $method, $params);
-
     $_->($c, $req_storage) for @$before_call_hook;
-
     $self->client->submit(
         name   => $req_storage->{name},
-        params => encode_json_utf8($params)
+        params => encode_json_utf8($params),
+        rpc_queue_client_tv => [Time::HiRes::gettimeofday],
     )->on_ready(sub {
         my ($f) = @_;
         $log->debugf('->submit completion: ', $f->state);
@@ -132,14 +132,20 @@ sub call_rpc {
         $_->($c, $req_storage) for @$before_get_rpc_response_hook;
 
         # unconditionally stop any further processing if client is already disconnected
+
         return Future->done unless $c and $c->tx;
 
         my $api_response;
+
         if($f->is_done) {
+            my $response = decode_json_utf8($f->get);
+            my $queue_time = delete $response->{rpc_queue_worker_tv};
             my $result = MojoX::JSON::RPC::Client::ReturnObject->new(
-                rpc_response => decode_json_utf8($f->get)
+                rpc_response => $response
             );
 
+            my $tags = {tags => ["method:$method", 'queue:'.$self->client->queue]};
+            stats_gauge("rpc_queue.worker.latency", 1000 * Time::HiRes::tv_interval($queue_time), $tags) if $queue_time;
             $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
             $api_response = $rpc_response_cb->($result->result);
@@ -152,6 +158,7 @@ sub call_rpc {
                 $msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.'
             );
         }
+
         return unless $api_response;
 
         $c->send({json => $api_response}, $req_storage);
