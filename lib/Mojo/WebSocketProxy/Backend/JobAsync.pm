@@ -11,7 +11,6 @@ use IO::Async::Loop::Mojo;
 use Job::Async;
 use MojoX::JSON::RPC::Client;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
-use DataDog::DogStatsd::Helper qw(stats_gauge stats_inc);
 use Time::HiRes;
 
 use Log::Any qw($log);
@@ -138,14 +137,10 @@ sub call_rpc {
         my $api_response;
 
         if($f->is_done) {
-            my $response = decode_json_utf8($f->get);
-            my $queue_time = delete $response->{rpc_queue_worker_tv};
             my $result = MojoX::JSON::RPC::Client::ReturnObject->new(
-                rpc_response => $response
+                rpc_response => decode_json_utf8($f->get)
             );
 
-            my $tags = {tags => ["method:$method", 'queue:'.$self->client->queue]};
-            stats_gauge("rpc_queue.worker.latency", 1000 * Time::HiRes::tv_interval($queue_time), $tags) if $queue_time;
             $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
             $api_response = $rpc_response_cb->($result->result);
