@@ -9,12 +9,14 @@ no indirect;
 
 use IO::Async::Loop::Mojo;
 use Job::Async;
+use MojoX::JSON::RPC::Client;
+use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 
 use Log::Any qw($log);
 
 ## VERSION
 
-__PACKAGE__->register_type( 'job_async' );
+__PACKAGE__->register_type('job_async');
 
 =head1 NAME
 
@@ -71,12 +73,13 @@ sub new {
                 require IO::Async::Loop::Mojo;
                 IO::Async::Loop::Mojo->new;
             };
+            $self->{loop} = $loop;
             $loop->add(
                 $jobman = Job::Async->new
             );
         }
 
-        $jobman->client;
+        $jobman->client(redis => $self->{redis});
     };
     return $self;
 }
@@ -105,6 +108,7 @@ sub call_rpc {
     my ($self, $c, $req_storage) = @_;
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
+    $self->{client}->start->get;
 
     $req_storage->{call_params} ||= {};
 
@@ -119,7 +123,8 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
 
     $self->client->submit(
-        data => $req_storage
+        name   => $req_storage->{name},
+        params => encode_json_utf8($params)
     )->on_ready(sub {
         my ($f) = @_;
         $log->debugf('->submit completion: ', $f->state);
@@ -131,11 +136,13 @@ sub call_rpc {
 
         my $api_response;
         if($f->is_done) {
-            my ($result) = $f->get;
+            my $result = MojoX::JSON::RPC::Client::ReturnObject->new(
+                rpc_response => decode_json_utf8($f->get)
+            );
 
             $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
-            $api_response = $rpc_response_cb->($result);
+            $api_response = $rpc_response_cb->($result->result);
         }
         else {
             my ($failure) = $f->failure;

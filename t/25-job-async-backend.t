@@ -18,12 +18,12 @@ package t::SampleClient {
     use parent qw(Job::Async::Client);
 
     sub loop { shift->{loop} //= $loop }
-    sub start { my ($self) = @_; }
+    sub start { Future->done }
 
     sub submit {
         my ($self, %args) = @_;
         push @::PENDING_JOBS, my $job = Job::Async::Job->new(
-            data   => $args{data},
+            data => \%args,
             id     => ++$LAST_ID,
             future => $self->loop->new_future,
         );
@@ -37,7 +37,7 @@ package t::SampleWorker {
 
     sub loop { shift->{loop} //= $loop }
 
-    sub start { }
+    sub start { Future->done }
 
     sub trigger {
         my ($self) = @_;
@@ -100,14 +100,14 @@ test_wsp {
             sub {
                 my ($job) = @_;
                 is($job->id, 1000, 'have correct ID');
-                is($job->data('method'), 'faraway', 'method was correct');
-                $job->done('everything worked');
+                is($job->data('name'), 'faraway', 'method name was correct');
+                $job->done(encode_json_utf8({result => 'everything worked'}));
             },
             sub {
                 my ($job) = @_;
                 is($job->id, 1001, 'have correct ID');
-                is($job->data('method'), 'faraway', 'method was correct');
-                $job->fail('everything broke');
+                is($job->data('name'), 'faraway', 'method name was correct');
+                $job->fail(encode_json_utf8({error => {code => 'WrongResponse'}}));
             }
         );
         my $handler = $worker->jobs
