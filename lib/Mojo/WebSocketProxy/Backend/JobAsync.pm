@@ -13,6 +13,7 @@ use MojoX::JSON::RPC::Client;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Time::HiRes;
 
+
 use Log::Any qw($log);
 
 ## VERSION
@@ -80,7 +81,8 @@ sub new {
             );
         }
 
-        $self->{client} = $jobman->client(redis => $self->{redis});
+        #$self->{client} = $jobman->client(redis => $self->{redis});
+        $jobman->client(redis => $self->{redis});
     };
     return $self;
 }
@@ -123,7 +125,7 @@ sub call_rpc {
     $self->client->submit(
         name   => $req_storage->{name},
         params => encode_json_utf8($params),
-        rpc_queue_client_tv => [Time::HiRes::gettimeofday],
+        rpc_queue_client_tv => [Time::HiRes::gettimeofday], #for Datadog Metrics
     )->on_ready(sub {
         my ($f) = @_;
         $log->debugf('->submit completion: ', $f->state);
