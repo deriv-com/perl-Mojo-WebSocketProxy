@@ -66,20 +66,26 @@ sub new {
     # We'd like to provide some flexibility for people trying to integrate this into
     # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
     # instance can be provided here.
-    unless ($self->{client}) {
-        unless($jobman) {
+     $self->{client} //= do {
+        unless ($jobman) {
             # We don't hold a ref to this, since that might introduce unfortunate cycles
             $loop //= do {
                 require IO::Async::Loop::Mojo;
-                IO::Async::Loop::Mojo->new;
+                local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo'; 
+                IO::Async::Loop->new;
             };
             $self->{loop} = $loop;
-            $loop->add(
-                $jobman = Job::Async->new
-            );
+            $loop->add($jobman = Job::Async->new);
+
         }
 
-        $self->{client} = $jobman->client(redis => $self->{redis});
+        my $client_job = $jobman->client(
+            redis     => $self->{redis},
+            mode      => 'reliable',
+            use_multi => 1
+        );
+        $client_job->start->retain;
+        $client_job;
     };
     return $self;
 }
@@ -108,7 +114,6 @@ sub call_rpc {
     my ($self, $c, $req_storage) = @_;
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
-    $self->{client}->start->get;
 
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
