@@ -77,9 +77,12 @@ sub new {
             $loop->add(
                 $jobman = Job::Async->new
             );
+
         }
 
-        $jobman->client(redis => $self->{redis});
+        my $client_job = $jobman->client(redis => $self->{redis}, mode => 'reliable', use_multi => 1);
+        $client_job->start->retain;
+        $client_job;
     };
     return $self;
 }
@@ -108,7 +111,6 @@ sub call_rpc {
     my ($self, $c, $req_storage) = @_;
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
-    $self->{client}->start->get;
 
     $req_storage->{call_params} ||= {};
 
