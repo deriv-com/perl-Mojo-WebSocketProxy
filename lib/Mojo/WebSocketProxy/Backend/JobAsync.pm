@@ -127,8 +127,7 @@ sub call_rpc {
     $_->($c, $req_storage) for @$before_call_hook;
     $self->client->submit(
         name                => $req_storage->{name},
-        params              => encode_json_utf8($params),
-        rpc_queue_client_tv => [Time::HiRes::gettimeofday],
+        params              => encode_json_utf8($params)
         )->on_ready(
         sub {
             my ($f) = @_;
