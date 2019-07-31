@@ -7,11 +7,12 @@ use parent qw(Mojo::WebSocketProxy::Backend);
 
 no indirect;
 
+use DataDog::DogStatsd::Helper qw(stats_inc);
 use IO::Async::Loop::Mojo;
 use Job::Async;
-use MojoX::JSON::RPC::Client;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Log::Any qw($log);
+use MojoX::JSON::RPC::Client;
 
 ## VERSION
 
@@ -125,8 +126,8 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
     $self->client->submit(
-        name                => $req_storage->{name},
-        params              => encode_json_utf8($params)
+        name   => $req_storage->{name},
+        params => encode_json_utf8($params)
         )->on_ready(
         sub {
             my ($f) = @_;
@@ -146,9 +147,12 @@ sub call_rpc {
                 $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
                 $api_response = $rpc_response_cb->($result->result);
+                stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
             } else {
                 my ($failure) = $f->failure;
                 $log->warnf("method %s failed: %s", $method, $failure);
+                stats_inc("rpc_queue.client.jobs.fail",
+                    {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
