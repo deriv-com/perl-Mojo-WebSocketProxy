@@ -102,7 +102,7 @@ sub call_rpc {
             IO::Async::Loop->new;
         };
         $self->{loop} = $loop;
-        $loop->add($jobman = Job::Async->new);
+        $loop->add(my $jobman = Job::Async->new);
 
         # Let's not pull it in unless we have it already, but we do want to avoid sharing number
         # sequences in forked workers.
