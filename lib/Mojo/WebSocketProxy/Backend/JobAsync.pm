@@ -58,35 +58,11 @@ sub new {
     my ($class, %args) = @_;
     # Avoid holding these - we only want the Job::Async::Client instance, and everything else
     # should be attached to the loop (which sticks around longer than we expect to).
-    my $loop = delete $args{loop};
+    my $loop   = delete $args{loop};
     my $jobman = delete $args{jobman};
 
     my $self = bless \%args, $class;
 
-    # We'd like to provide some flexibility for people trying to integrate this into
-    # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
-    # instance can be provided here.
-     $self->{client} //= do {
-        unless ($jobman) {
-            # We don't hold a ref to this, since that might introduce unfortunate cycles
-            $loop //= do {
-                require IO::Async::Loop::Mojo;
-                local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo'; 
-                IO::Async::Loop->new;
-            };
-            $self->{loop} = $loop;
-            $loop->add($jobman = Job::Async->new);
-
-        }
-
-        my $client_job = $jobman->client(
-            redis     => $self->{redis},
-            mode      => 'reliable',
-            use_multi => 1
-        );
-        $client_job->start->retain;
-        $client_job;
-    };
     return $self;
 }
 
@@ -112,8 +88,33 @@ Implements the L<Mojo::WebSocketProxy::Backend/call_rpc> interface.
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
-    my $method   = $req_storage->{method};
+    my $method = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
+
+    # We'd like to provide some flexibility for people trying to integrate this into
+    # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
+    # instance can be provided here.
+    $self->{client} //= do {
+        # We don't hold a ref to this, since that might introduce unfortunate cycles
+        my $loop //= do {
+            require IO::Async::Loop::Mojo;
+            local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
+            IO::Async::Loop->new;
+        };
+        $self->{loop} = $loop;
+        $loop->add($jobman = Job::Async->new);
+
+        # Let's not pull it in unless we have it already, but we do want to avoid sharing number
+        # sequences in forked workers.
+        Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
+        my $client_job = $jobman->client(
+            redis     => $self->{redis},
+            mode      => 'reliable',
+            use_multi => 1
+        );
+        $client_job->start->retain;
+        $client_job;
+    };
 
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
@@ -125,43 +126,39 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
     $self->client->submit(
-        name   => $req_storage->{name},
-        params => encode_json_utf8($params),
+        name                => $req_storage->{name},
+        params              => encode_json_utf8($params),
         rpc_queue_client_tv => [Time::HiRes::gettimeofday],
-    )->on_ready(sub {
-        my ($f) = @_;
-        $log->debugf('->submit completion: ', $f->state);
+        )->on_ready(
+        sub {
+            my ($f) = @_;
+            $log->debugf('->submit completion: ', $f->state);
 
-        $_->($c, $req_storage) for @$before_get_rpc_response_hook;
+            $_->($c, $req_storage) for @$before_get_rpc_response_hook;
 
-        # unconditionally stop any further processing if client is already disconnected
+            # unconditionally stop any further processing if client is already disconnected
 
-        return Future->done unless $c and $c->tx;
+            return Future->done unless $c and $c->tx;
 
-        my $api_response;
+            my $api_response;
 
-        if($f->is_done) {
-            my $result = MojoX::JSON::RPC::Client::ReturnObject->new(
-                rpc_response => decode_json_utf8($f->get)
-            );
+            if ($f->is_done) {
+                my $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
 
-            $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
+                $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
 
-            $api_response = $rpc_response_cb->($result->result);
-        }
-        else {
-            my ($failure) = $f->failure;
-            $log->warnf("method %s failed: %s", $method, $failure);
+                $api_response = $rpc_response_cb->($result->result);
+            } else {
+                my ($failure) = $f->failure;
+                $log->warnf("method %s failed: %s", $method, $failure);
 
-            $api_response = $c->wsp_error(
-                $msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.'
-            );
-        }
+                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+            }
 
-        return unless $api_response;
+            return unless $api_response;
 
-        $c->send({json => $api_response}, $req_storage);
-    })->retain;
+            $c->send({json => $api_response}, $req_storage);
+        })->retain;
     return;
 }
 
