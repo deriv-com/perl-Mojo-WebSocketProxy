@@ -11,7 +11,6 @@ use IO::Async::Loop::Mojo;
 use Job::Async;
 use MojoX::JSON::RPC::Client;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
-use Time::HiRes;
 use Log::Any qw($log);
 
 ## VERSION
