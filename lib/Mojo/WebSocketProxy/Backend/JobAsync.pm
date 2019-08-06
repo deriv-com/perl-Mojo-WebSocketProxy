@@ -58,8 +58,8 @@ sub new {
     my ($class, %args) = @_;
     # Avoid holding these - we only want the Job::Async::Client instance, and everything else
     # should be attached to the loop (which sticks around longer than we expect to).
-    $loop   = delete $args{loop};
-    $jobman = delete $args{jobman};
+    delete $args{loop};
+    delete $args{jobman};
 
     my $self = bless \%args, $class;
 
