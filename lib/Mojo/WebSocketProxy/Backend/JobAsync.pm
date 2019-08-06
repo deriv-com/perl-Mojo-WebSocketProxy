@@ -96,13 +96,12 @@ sub call_rpc {
     # instance can be provided here.
     $self->{client} //= do {
         # We don't hold a ref to this, since that might introduce unfortunate cycles
-        my $loop //= do {
+        $self->{loop} //= do {
             require IO::Async::Loop::Mojo;
             local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
             IO::Async::Loop->new;
         };
-        $self->{loop} = $loop;
-        $loop->add(my $jobman = Job::Async->new);
+        $self->{loop}->add(my $jobman = Job::Async->new);
 
         # Let's not pull it in unless we have it already, but we do want to avoid sharing number
         # sequences in forked workers.
