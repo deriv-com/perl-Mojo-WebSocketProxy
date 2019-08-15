@@ -106,11 +106,7 @@ sub call_rpc {
         # Let's not pull it in unless we have it already, but we do want to avoid sharing number
         # sequences in forked workers.
         Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
-        my $client_job = $jobman->client(
-            redis     => $self->{redis},
-            mode      => 'reliable',
-            use_multi => 1
-        );
+        my $client_job = $jobman->client(redis => $self->{redis});
         $client_job->start->retain;
         $client_job;
     };
