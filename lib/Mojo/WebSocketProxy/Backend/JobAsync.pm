@@ -14,6 +14,8 @@ use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Log::Any qw($log);
 use MojoX::JSON::RPC::Client;
 
+use constant PRC_QUEUE_TIMEOUT => $ENV{PRC_QUEUE_TIMEOUT} // 30;
+
 ## VERSION
 
 __PACKAGE__->register_type('job_async');
@@ -120,10 +122,13 @@ sub call_rpc {
     my $params = $self->make_call_params($c, $req_storage);
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
-    $self->client->submit(
+
+    my $submit_future = $self->client->submit(
         name   => $req_storage->{name},
         params => encode_json_utf8($params)
-        )->on_ready(
+        );
+    my $timeout_future = Future::Mojo->new_timer(PRC_QUEUE_TIMEOUT)->then(sub { Future->fail('timeout') });
+    Future->wait_any($submit_future, $timeout_future)->on_ready(
         sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
