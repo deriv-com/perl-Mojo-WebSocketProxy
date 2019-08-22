@@ -43,7 +43,6 @@ package t::SampleWorker {
 
     sub trigger {
         my ($self) = @_;
-
         $self->{active} ||= (repeat {
             if(my $job = shift(@::PENDING_JOBS)) {
                 $self->process($job);
@@ -60,8 +59,6 @@ package t::SampleWorker {
     }
 };
 
-my $client = t::SampleClient->new;
-
 package t::FrontEnd {
     use base 'Mojolicious';
 
@@ -73,6 +70,7 @@ package t::FrontEnd {
          my $url = $ENV{T_TestWSP_RPC_URL} // die("T_TestWSP_RPC_URL is not defined");
          ( my $url2 = $url ) =~ s{/rpc/}{/rpc2/};
 
+         my $client = t::SampleClient->new;
          $self->plugin(
              'web_socket_proxy' => {
                 actions => [
@@ -100,7 +98,6 @@ test_wsp {
 
     is(exception {
         my $worker = t::SampleWorker->new;
-
         my @job_callbacks = (
             sub {
                 my ($job) = @_;
