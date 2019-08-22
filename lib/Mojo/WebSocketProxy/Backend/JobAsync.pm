@@ -139,6 +139,7 @@ sub call_rpc {
     });
     
     my $timeout_future = Future::Mojo->new_timer($PRC_QUEUE_TIMEOUT)->then(sub { Future->fail('rpc queue timeout') });
+
     Future->wait_any($submit_future, $timeout_future)->on_ready(
         sub {
             my ($f) = @_;
@@ -177,7 +178,7 @@ sub call_rpc {
                 
                 # force client to restart after failure (if it is not restarted yet)
                 my $start_future = $self->{start_client_future};
-                if ($start_future and ($start_future->state ne 'pending')) {
+                if ($start_future and ($f == $submit_future) and ($start_future->state ne 'pending')) {
                     $log->warnf('Client is going to restart after failure');
                     delete $self->{start_client_future} ;
                 }
