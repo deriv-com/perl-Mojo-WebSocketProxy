@@ -114,13 +114,17 @@ sub call_rpc {
     };
     # restart client at startup and after failure
     $self->{start_client_future} //= do {
-        $self->client->start->on_done(sub {
+        $self->client->start->on_done(
+            sub {
                 $log->infof('Queue backend client started successfully');
-            })->on_fail(sub{
-                $log->errorf('Queue backend client failed to start: %s', $_);
+            }
+            )->on_fail(
+            sub {
+                my $exception = shift;
+                $log->errorf('Queue backend client failed to start: %s', $exception);
             });
     };
-    
+
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
 
@@ -131,15 +135,14 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
 
-    my $submit_future = $self->{start_client_future}->then(sub { 
-        $self->client->submit(
-            name   => $req_storage->{name},
-            params => encode_json_utf8($params)
-            );
-    });
-    
-    my $timeout_future = Future::Mojo->new_timer($PRC_QUEUE_TIMEOUT)->then(sub { Future->fail('rpc queue timeout') });
+    my $submit_future = $self->{start_client_future}->then(
+        sub {
+            $self->client->submit(
+                name   => $req_storage->{name},
+                params => encode_json_utf8($params));
+        });
 
+    my $timeout_future = Future::Mojo->new_timer($PRC_QUEUE_TIMEOUT)->then(sub { Future->fail('rpc queue timeout') });
     Future->wait_any($submit_future, $timeout_future)->on_ready(
         sub {
             my ($f) = @_;
@@ -154,33 +157,34 @@ sub call_rpc {
             my $api_response;
 
             if ($f->is_done) {
-                try{
+                try {
                     my $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
-    
+
                     $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
-    
+
                     $api_response = $rpc_response_cb->($result->result);
                     stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
                 }
-                catch{
+                catch {
                     $log->warnf("Failed to process response of method %s: %s", $method, $_);
                     stats_inc("rpc_queue.client.jobs.fail",
-                    {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $_]});
+                        {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $_]});
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
-                my ($failure) = $f->is_failed? $f->failure: 'request was cancelled';
+                my $failure = $f->is_failed ? $f->failure // '' : 'request was cancelled';
+
                 $log->warnf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-                
-                # force client to restart after failure (if it is not restarted yet)
+
+                # force client to restart on failure (if it is not already restarting)
                 my $start_future = $self->{start_client_future};
-                if ($start_future and ($f == $submit_future) and ($start_future->state ne 'pending')) {
+                if ( $start_future and ($start_future->state ne 'pending')) {
                     $log->warnf('Client is going to restart after failure');
-                    delete $self->{start_client_future} ;
+                    delete $self->{start_client_future};
                 }
             }
 
