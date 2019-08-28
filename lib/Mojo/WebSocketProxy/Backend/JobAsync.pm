@@ -15,8 +15,6 @@ use Log::Any qw($log);
 use MojoX::JSON::RPC::Client;
 use Syntax::Keyword::Try;
 
-my $PRC_QUEUE_TIMEOUT = $ENV{PRC_QUEUE_TIMEOUT} // 30;
-
 ## VERSION
 
 __PACKAGE__->register_type('job_async');
@@ -135,15 +133,12 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
 
-    my $submit_future = $self->{start_client_future}->then(
+    $self->{start_client_future}->then(
         sub {
             $self->client->submit(
                 name   => $req_storage->{name},
                 params => encode_json_utf8($params));
-        });
-
-    my $timeout_future = Future::Mojo->new_timer($PRC_QUEUE_TIMEOUT)->then(sub { Future->fail('rpc queue timeout') });
-    Future->wait_any($submit_future, $timeout_future)->on_ready(
+        })->on_ready(
         sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
@@ -172,7 +167,7 @@ sub call_rpc {
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
-                my $failure = $f->is_failed ? $f->failure // '' : 'request was cancelled';
+                my $failure = $f->is_failed ? $f->failure // '' : 'rpc request was cancelled';
 
                 $log->warnf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
