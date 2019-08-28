@@ -14,6 +14,7 @@ use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
+use List::Util qw(first);
 use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
@@ -194,7 +195,6 @@ sub _run_hooks {
 
 sub dispatch {
     my ($c, $args) = @_;
-
     my $log = $c->app->log;
     $log->debug("websocket got json " . $c->dumper($args));
 
@@ -216,11 +216,26 @@ sub forward {
             grep { $_ } (ref $config->{$hook} eq 'ARRAY'      ? @{$config->{$hook}}      : $config->{$hook}),
             grep { $_ } (ref $req_storage->{$hook} eq 'ARRAY' ? @{$req_storage->{$hook}} : $req_storage->{$hook}),
         ];
-    }
+    };
 
-    my $backend_name = $req_storage->{backend} // "default";
-    my $backend = $c->wsp_config->{backends}{$backend_name}
-        or die "Cannot dispatch request - no backend named '$backend_name'";
+    my $backend_name = delete $req_storage->{backend};
+    if (!$backend_name and exists $req_storage->{msg_type}) {
+        # undispatched message, for witch assign_ws_backend hook is skipped
+        # trying to get backend from action settings
+        my $action = $c->wsp_config->{actions}->{$req_storage->{msg_type}}  // do {
+            my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised action');
+            $c->send({json => $err}, $req_storage);
+            return;
+        };
+        $backend_name = $action->{backend};
+    }
+    $backend_name //= 'default';
+    
+    my $backend = $c->wsp_config->{backends}{$backend_name} // do {
+        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised backend');
+            $c->send({json => $err}, $req_storage);
+            return;
+    };
 
     $backend->call_rpc($c, $req_storage);
 
