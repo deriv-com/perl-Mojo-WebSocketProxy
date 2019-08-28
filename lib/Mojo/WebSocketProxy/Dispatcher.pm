@@ -14,7 +14,6 @@ use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
 use Scalar::Util qw(blessed);
-use List::Util qw(first);
 use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
