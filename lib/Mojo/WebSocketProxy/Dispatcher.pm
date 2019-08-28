@@ -219,8 +219,8 @@ sub forward {
 
     my $backend_name = delete $req_storage->{backend};
     if (!$backend_name and exists $req_storage->{msg_type}) {
-        # undispatched message, for witch assign_ws_backend hook is skipped
-        # trying to get backend from action settings
+        # trying to get backend from action settings for
+        # undispatched message (e.g. methods with instead_of_foward hooks)
         my $action = $c->wsp_config->{actions}->{$req_storage->{msg_type}}  // do {
             my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised action');
             $c->send({json => $err}, $req_storage);
