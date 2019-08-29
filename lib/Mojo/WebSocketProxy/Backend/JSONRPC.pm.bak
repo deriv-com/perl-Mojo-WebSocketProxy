@@ -13,7 +13,7 @@ use curry;
 
 use MojoX::JSON::RPC::Client;
 
-## VERSION
+our $VERSION = '0.11';    ## VERSION
 
 __PACKAGE__->register_type('jsonrpc');
 
@@ -61,7 +61,7 @@ if a C<< $response->{error} >>  error was returned from the remote call, and C<<
 
 =item - success, a subroutines reference that will be called if there was no error returned from the remote call and  C<< $req_storage->{rpc_response_cb} >> was not passed. 
 
-=item - rpc_failure_cb, a sub routine reference to call if the remote call fails at a http level. Called with C<< Mojolicious::Controller >> the rpc_response and C<< $req_storage >> 
+=item - rpc_failure_cb, a sub routine reference to call if the remote call fails at a http level. 
 
 =back
 
@@ -90,7 +90,7 @@ sub call_rpc {
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
-    my $rpc_failure_cb               =  delete($req_storage->{rpc_failure_cb}) || 0;
+    my $rpc_failure_cb           =  delete($req_storage->{rpc_failure_cb}) || 0;
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -121,7 +121,7 @@ sub call_rpc {
                         $details .= ', code: ' . ($err->{code} // 'n/a') . ', response: ' . $err->{message};
                     }
                     warn "WrongResponse [$msg_type], details: $details";
-                    $rpc_failure_cb->($c, $res, $req_storage ) if $rpc_failure_cb;
+                    $rpc_failure_cb->($res) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
@@ -131,7 +131,7 @@ sub call_rpc {
 
                 if ($res->is_error) {
                     warn $res->error_message;
-                    $rpc_failure_cb->($c, $res, $req_storage ) if $rpc_failure_cb;
+                    $rpc_failure_cb->($res) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
