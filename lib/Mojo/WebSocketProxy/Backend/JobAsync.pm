@@ -103,24 +103,13 @@ sub call_rpc {
             IO::Async::Loop->new;
         };
         $self->{loop}->add(my $jobman = Job::Async->new);
-
+        $self->{jobman} = $jobman;
         # Let's not pull it in unless we have it already, but we do want to avoid sharing number
         # sequences in forked workers.
         Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
         my $client_job = $jobman->client(redis => $self->{redis});
-        $client_job;
-    };
-    # restart client at startup and after failure
-    $self->{start_client_future} //= do {
-        $self->client->start->on_done(
-            sub {
-                $log->infof('Queue backend client started successfully');
-            }
-            )->on_fail(
-            sub {
-                my $exception = shift;
-                $log->errorf('Queue backend client failed to start: %s', $exception);
-            });
+        $client_job->start;
+	    $client_job;
     };
 
     $req_storage->{call_params} ||= {};
@@ -133,13 +122,9 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
 
-    $self->{start_client_future}->then(
-        sub {
-            $self->client->submit(
-                name   => $req_storage->{name},
-                params => encode_json_utf8($params));
-        })->on_ready(
-        sub {
+    $self->client->submit(
+        name   => $req_storage->{name},
+        params => encode_json_utf8($params))->on_ready(sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
 
@@ -167,20 +152,13 @@ sub call_rpc {
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
-                my $failure = $f->is_failed ? $f->failure // '' : 'rpc request was cancelled';
+                my $failure = $f->is_failed ? $f->failure // '' : 'Rpc request was cancelled. Subscription is not ready.';
 
                 $log->warnf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-
-                # force client to restart on failure (if it is not already restarting)
-                my $start_future = $self->{start_client_future};
-                if ( $start_future and ($start_future->state ne 'pending')) {
-                    $log->warnf('Client is going to restart after failure');
-                    delete $self->{start_client_future};
-                }
             }
 
             return unless $api_response;
