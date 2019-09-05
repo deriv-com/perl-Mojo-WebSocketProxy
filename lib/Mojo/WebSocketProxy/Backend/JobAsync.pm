@@ -55,6 +55,8 @@ C<< $jobman->client >> if not provided.
 
 =cut
 
+use constant RPC_QUEUE_TIMEOUT => $ENV{PRC_QUEUE_TIMEOUT} // 300;
+
 sub new {
     my ($class, %args) = @_;
     # Avoid holding these - we only want the Job::Async::Client instance, and everything else
@@ -109,7 +111,7 @@ sub call_rpc {
         Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
         my $client_job = $jobman->client(redis => $self->{redis});
         $client_job->start;
-	    $client_job;
+        $client_job;
     };
 
     $req_storage->{call_params} ||= {};
@@ -122,9 +124,13 @@ sub call_rpc {
     $log->debugf("method %s has params = %s", $method, $params);
     $_->($c, $req_storage) for @$before_call_hook;
 
-    $self->client->submit(
-        name   => $req_storage->{name},
-        params => encode_json_utf8($params))->on_ready(sub {
+    Future->wait_any(
+        $self->client->submit(
+            name   => $req_storage->{name},
+            params => encode_json_utf8($params)
+        ),
+        Future::Mojo->new_timer(RPC_QUEUE_TIMEOUT)->then(sub { Future->fail('Timeout') })
+        )->on_ready(sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
 
