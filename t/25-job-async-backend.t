@@ -12,7 +12,7 @@ use IO::Async::Loop::Mojo;
 
 our @PENDING_JOBS;
 
-$ENV{PRC_QUEUE_TIMEOUT} = 2;
+$ENV{QUEUE_TIMEOUT} = 2;
 
 my $loop = IO::Async::Loop::Mojo->new;
 our $LAST_ID = 999;
