@@ -215,25 +215,26 @@ sub forward {
             grep { $_ } (ref $config->{$hook} eq 'ARRAY'      ? @{$config->{$hook}}      : $config->{$hook}),
             grep { $_ } (ref $req_storage->{$hook} eq 'ARRAY' ? @{$req_storage->{$hook}} : $req_storage->{$hook}),
         ];
-    };
+    }
+    
+    my $method = $req_storage->{name} // $req_storage->{msg_type} // $req_storage->{method};
 
     my $backend_name = delete $req_storage->{backend};
-    if (!$backend_name and exists $req_storage->{msg_type}) {
+    unless $backend_name {
         # trying to get backend from action settings for
         # undispatched message (e.g. methods with instead_of_foward hooks)
-        my $action = $c->wsp_config->{actions}->{$req_storage->{msg_type}}  // do {
+        my $action = $c->wsp_config->{actions}->{$method} // do {
             my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised action');
             $c->send({json => $err}, $req_storage);
             return;
         };
-        $backend_name = $action->{backend};
+        $backend_name = $action->{backend} // 'default';
     }
-    $backend_name //= 'default';
-    
+
     my $backend = $c->wsp_config->{backends}{$backend_name} // do {
         my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised backend');
-            $c->send({json => $err}, $req_storage);
-            return;
+        $c->send({json => $err}, $req_storage);
+        return;
     };
 
     $backend->call_rpc($c, $req_storage);
