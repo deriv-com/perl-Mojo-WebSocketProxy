@@ -20,7 +20,7 @@ package t::SampleClient {
     use parent qw(Job::Async::Client);
 
     sub loop { shift->{loop} //= $loop }
-    sub start { shift->{startup_future} = Futute->done }
+    sub start { shift->{startup_future} = Future->done }
 
     sub submit {
         my ($self, %args) = @_;
