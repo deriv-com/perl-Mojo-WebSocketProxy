@@ -55,7 +55,7 @@ C<< $jobman->client >> if not provided.
 
 =cut
 
-use constant RPC_QUEUE_TIMEOUT => $ENV{PRC_QUEUE_TIMEOUT} // 300;
+use constant QUEUE_TIMEOUT => $ENV{QUEUE_TIMEOUT} // 300;
 
 sub new {
     my ($class, %args) = @_;
