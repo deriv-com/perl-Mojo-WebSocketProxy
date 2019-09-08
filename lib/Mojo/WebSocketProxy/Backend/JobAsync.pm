@@ -38,11 +38,11 @@ Returns a new instance. Required params:
 
 =over 4
 
-=item loop => IO::Async::Loop
+=item loop => IO::Async::Loop (deprecate)
 
 Containing L<IO::Async::Loop> instance.
 
-=item jobman => Job::Async
+=item jobman => Job::Async (deprecate)
 
 Optional L<Job::Async> instance.
 
@@ -81,7 +81,37 @@ Returns the L<Job::Async::Client> instance.
 
 =cut
 
-sub client { return shift->{client} }
+sub client {
+    my $self = shift;
+    return $self->{client} //= do {
+        # We don't hold a ref to this, since that might introduce unfortunate cycles
+        $self->loop->add(my $jobman = Job::Async->new);
+        # Let's not pull it in unless we have it already, but we do want to avoid sharing number
+        # sequences in forked workers.
+        Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
+        my $client_job = $jobman->client(redis => $self->{redis});
+        $client_job->start;
+        $client_job;
+    };
+}
+
+
+=head2 loop
+
+    $client = $backend->client
+
+Returns the async IO loop object.
+
+=cut
+
+sub loop {
+    my $self = shift;
+    return $self->{loop} //= $self->{loop} //= do {
+        require IO::Async::Loop::Mojo;
+        local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
+        IO::Async::Loop->new;
+    };
+}
 
 =head2 call_rpc
 
@@ -93,26 +123,6 @@ sub call_rpc {
     my ($self, $c, $req_storage) = @_;
     my $method = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
-
-    # We'd like to provide some flexibility for people trying to integrate this into
-    # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
-    # instance can be provided here.
-    $self->{client} //= do {
-        # We don't hold a ref to this, since that might introduce unfortunate cycles
-        $self->{loop} //= do {
-            require IO::Async::Loop::Mojo;
-            local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
-            IO::Async::Loop->new;
-        };
-        $self->{loop}->add(my $jobman = Job::Async->new);
-        $self->{jobman} = $jobman;
-        # Let's not pull it in unless we have it already, but we do want to avoid sharing number
-        # sequences in forked workers.
-        Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
-        my $client_job = $jobman->client(redis => $self->{redis});
-        $client_job->start;
-        $client_job;
-    };
 
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
@@ -129,7 +139,7 @@ sub call_rpc {
             name   => $req_storage->{name},
             params => encode_json_utf8($params)
         ),
-        Future::Mojo->new_timer(RPC_QUEUE_TIMEOUT)->then(sub { Future->fail('Timeout') })
+        $self->loop->timeout_future(after => QUEUE_TIMEOUT)
         )->on_ready(sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
