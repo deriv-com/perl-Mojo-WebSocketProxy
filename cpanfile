@@ -10,6 +10,7 @@ requires 'IO::Async::Loop::Mojo';
 requires 'Scalar::Util';
 requires 'Unicode::Normalize', '>= 1.25';
 requires 'DataDog::DogStatsd::Helper', '>= 0.05';
+requires 'Syntax::Keyword::Try', '>= 0.04';
 requires 'perl', '5.014';
 
 requires 'Job::Async', 0;

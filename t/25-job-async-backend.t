@@ -71,7 +71,6 @@ package t::FrontEnd {
          ( my $url2 = $url ) =~ s{/rpc/}{/rpc2/};
 
          my $client = t::SampleClient->new;
-         my $loop = 
          $self->plugin(
              'web_socket_proxy' => {
                 actions => [
