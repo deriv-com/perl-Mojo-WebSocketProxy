@@ -30,6 +30,20 @@ via L<Job::Async>.
 
 =cut
 
+=head1 CONSTANTS
+
+=head2 QUEUE_TIMEOUT
+
+A duration in seconds (default: 300) used to create a timeout at the end of which
+an error will be sent if there is no response received from queue workers.
+The default value can be orverriden by setting an environment variable of the same name:
+    
+    $ENV{QUEUE_TIMEOUT} = 2;
+
+=cut
+
+use constant QUEUE_TIMEOUT => $ENV{QUEUE_TIMEOUT} // 300;
+
 =head1 CLASS METHODS
 
 =head2 new
@@ -38,31 +52,25 @@ Returns a new instance. Required params:
 
 =over 4
 
-=item loop => IO::Async::Loop (deprecate)
+=item loop => IO::Async::Loop
 
 Containing L<IO::Async::Loop> instance.
 
-=item jobman => Job::Async (deprecate)
+=item jobman => Job::Async
 
-Optional L<Job::Async> instance.
+Optional L<Job::Async> instance. If non-empty, it should be already added to the C<loop>.
 
 =item client => Job::Async::Client
 
-Optional L<Job::Async::Client> instance. Will be constructed from
-C<< $jobman->client >> if not provided.
+Optional L<Job::Async::Client> instance. If non-empty, it should be constructed by  C<< $jobman->client >>.
+Will be constructed from C<< $jobman->client >> if not provided.
 
 =back
 
 =cut
 
-use constant QUEUE_TIMEOUT => $ENV{QUEUE_TIMEOUT} // 300;
-
 sub new {
     my ($class, %args) = @_;
-    # Avoid holding these - we only want the Job::Async::Client instance, and everything else
-    # should be attached to the loop (which sticks around longer than we expect to).
-    delete $args{loop};
-    delete $args{jobman};
 
     my $self = bless \%args, $class;
 
@@ -84,12 +92,10 @@ Returns the L<Job::Async::Client> instance.
 sub client {
     my $self = shift;
     return $self->{client} //= do {
-        # We don't hold a ref to this, since that might introduce unfortunate cycles
-        $self->loop->add(my $jobman = Job::Async->new);
         # Let's not pull it in unless we have it already, but we do want to avoid sharing number
         # sequences in forked workers.
         Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
-        my $client_job = $jobman->client(redis => $self->{redis});
+        my $client_job = $self->jobman->client(redis => $self->{redis});
         $client_job->start;
         $client_job;
     };
@@ -98,7 +104,7 @@ sub client {
 
 =head2 loop
 
-    $client = $backend->client
+    $client = $backend->loop
 
 Returns the async IO loop object.
 
@@ -106,11 +112,27 @@ Returns the async IO loop object.
 
 sub loop {
     my $self = shift;
-    return $self->{loop} //= $self->{loop} //= do {
+    return $self->{loop} //= do {
         require IO::Async::Loop::Mojo;
         local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
         IO::Async::Loop->new;
     };
+}
+
+=head2 jobman
+
+    $jobman = $backend->jobman
+
+Returns an object of L<Job::Async> that acts as job manager for the queue client.
+
+=cut
+
+sub jobman {
+    my $self = shift;
+    return $self->{jobman} //= do {
+        $self->loop->add(my $jobman = Job::Async->new);
+        $jobman;
+    }
 }
 
 =head2 call_rpc
