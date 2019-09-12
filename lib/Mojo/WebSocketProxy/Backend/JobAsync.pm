@@ -34,8 +34,7 @@ via L<Job::Async>.
 
 =head2 QUEUE_TIMEOUT
 
-A duration in seconds (default: 300) used to create a timeout at the end of which
-an error will be sent if there is no response received from queue workers.
+A duration of timeout in seconds (default: 300) for receiving response from RPC queue.
 The default value can be orverriden by setting an environment variable of the same name:
     
     $ENV{QUEUE_TIMEOUT} = 2;
@@ -196,7 +195,7 @@ sub call_rpc {
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
-                my $failure = $f->is_failed ? $f->failure // '' : 'Rpc request was cancelled. Subscription is not ready.';
+                my $failure = $f->is_failed ? $f->failure // '' : 'RPC request was cancelled. Subscription is not ready.';
 
                 $log->errorf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
