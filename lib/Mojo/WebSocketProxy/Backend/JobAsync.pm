@@ -188,7 +188,7 @@ sub call_rpc {
                 }
                 catch {
                     my $error = $@;
-                    $log->warnf("Failed to process response of method %s: %s", $method, $error);
+                    $log->errorf("Failed to process response of method %s: %s", $method, $error);
                     stats_inc("rpc_queue.client.jobs.fail",
                         {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $error]});
 
@@ -198,7 +198,7 @@ sub call_rpc {
             } else {
                 my $failure = $f->is_failed ? $f->failure // '' : 'Rpc request was cancelled. Subscription is not ready.';
 
-                $log->warnf("Method %s failed: %s", $method, $failure);
+                $log->errorf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
