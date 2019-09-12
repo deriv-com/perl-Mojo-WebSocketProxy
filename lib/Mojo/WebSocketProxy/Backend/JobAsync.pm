@@ -149,12 +149,15 @@ sub call_rpc {
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
 
-    my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hook             = delete($req_storage->{before_call})             || [];
+    my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
+    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
+    my $before_call_hooks             = delete($req_storage->{before_call})             || [];
+    my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb}) || 0;
+
     my $params = $self->make_call_params($c, $req_storage);
     $log->debugf("method %s has params = %s", $method, $params);
-    $_->($c, $req_storage) for @$before_call_hook;
+
+    foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) };
 
     Future->wait_any(
         $self->client->submit(
@@ -166,27 +169,30 @@ sub call_rpc {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
 
-            $_->($c, $req_storage) for @$before_get_rpc_response_hook;
+            foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage) };
 
             # unconditionally stop any further processing if client is already disconnected
 
             return Future->done unless $c and $c->tx;
 
             my $api_response;
-
+            my $result;
             if ($f->is_done) {
                 try {
-                    my $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
+                    $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
 
-                    $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
+                    foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage, $result) };
 
                     $api_response = $rpc_response_cb->($result->result);
                     stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
                 }
                 catch {
-                    $log->warnf("Failed to process response of method %s: %s", $method, $_);
+                    my $error = $@;
+                    $log->warnf("Failed to process response of method %s: %s", $method, $error);
                     stats_inc("rpc_queue.client.jobs.fail",
-                        {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $_]});
+                        {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $error]});
+
+                    $rpc_failure_cb->($c, $result, $req_storage ) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
@@ -196,6 +202,7 @@ sub call_rpc {
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
+                $rpc_failure_cb->($c, $result, $req_storage ) if $rpc_failure_cb;
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
 
