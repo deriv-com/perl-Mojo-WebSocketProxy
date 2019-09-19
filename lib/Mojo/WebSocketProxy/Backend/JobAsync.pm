@@ -100,7 +100,6 @@ sub client {
     };
 }
 
-
 =head2 loop
 
     $client = $backend->loop
@@ -131,7 +130,7 @@ sub jobman {
     return $self->{jobman} //= do {
         $self->loop->add(my $jobman = Job::Async->new);
         $jobman;
-    }
+        }
 }
 
 =head2 call_rpc
@@ -151,24 +150,27 @@ sub call_rpc {
     my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hooks             = delete($req_storage->{before_call})             || [];
-    my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb}) || 0;
+    my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb})          || 0;
 
     my $params = $self->make_call_params($c, $req_storage);
     $log->debugf("method %s has params = %s", $method, $params);
 
-    foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) };
+    foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
 
+    my $expires = Time::HiRes::time() + QUEUE_TIMEOUT;
     Future->wait_any(
         $self->client->submit(
-            name   => $req_storage->{name},
-            params => encode_json_utf8($params)
+            expires => $expires,
+            name    => $req_storage->{name},
+            params  => encode_json_utf8($params),
         ),
-        $self->loop->timeout_future(after => QUEUE_TIMEOUT)
-        )->on_ready(sub {
+        $self->loop->timeout_future(at => $expires)
+        )->on_ready(
+        sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
 
-            foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage) };
+            foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage) }
 
             # unconditionally stop any further processing if client is already disconnected
 
@@ -180,7 +182,7 @@ sub call_rpc {
                 try {
                     $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
 
-                    foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage, $result) };
+                    foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage, $result) }
 
                     $api_response = $rpc_response_cb->($result->result);
                     stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
@@ -191,7 +193,7 @@ sub call_rpc {
                     stats_inc("rpc_queue.client.jobs.fail",
                         {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $error]});
 
-                    $rpc_failure_cb->($c, $result, $req_storage ) if $rpc_failure_cb;
+                    $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                 };
             } else {
@@ -201,7 +203,7 @@ sub call_rpc {
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
-                $rpc_failure_cb->($c, $result, $req_storage ) if $rpc_failure_cb;
+                $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
 
