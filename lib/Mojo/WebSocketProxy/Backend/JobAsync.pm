@@ -158,13 +158,14 @@ sub call_rpc {
     foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
 
     my $expires = Time::HiRes::time() + QUEUE_TIMEOUT;
+    my $timeout_future = $self->loop->timeout_future(at => $expires);
     Future->wait_any(
         $self->client->submit(
             expires => $expires,
             name    => $req_storage->{name},
             params  => encode_json_utf8($params),
         ),
-        $self->loop->timeout_future(at => $expires)
+        $timeout_future
         )->on_ready(
         sub {
             my ($f) = @_;
@@ -204,7 +205,11 @@ sub call_rpc {
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
                 $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                if ($timeout_future->is_failed){
+                    $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
+                } else {
+                    $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                }
             }
 
             return unless $api_response;
