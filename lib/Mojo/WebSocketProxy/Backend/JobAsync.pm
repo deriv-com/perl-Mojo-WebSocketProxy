@@ -36,7 +36,7 @@ via L<Job::Async>.
 
 A duration of timeout in seconds (default: 300) for receiving response from RPC queue.
 The default value can be orverriden by setting an environment variable of the same name:
-    
+
     $ENV{QUEUE_TIMEOUT} = 2;
 
 =cut
@@ -157,11 +157,9 @@ sub call_rpc {
 
     foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
 
-    my $expires = Time::HiRes::time() + QUEUE_TIMEOUT;
-    my $timeout_future = $self->loop->timeout_future(at => $expires);
+    my $timeout_future = $self->loop->timeout_future(at => Time::HiRes::time() + QUEUE_TIMEOUT);
     Future->wait_any(
         $self->client->submit(
-            expires => $expires,
             name    => $req_storage->{name},
             params  => encode_json_utf8($params),
         ),
@@ -220,3 +218,4 @@ sub call_rpc {
 }
 
 1;
+
