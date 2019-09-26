@@ -157,7 +157,7 @@ sub call_rpc {
 
     foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
 
-    my $timeout_future = $self->loop->timeout_future(at => Time::HiRes::time() + QUEUE_TIMEOUT);
+    my $timeout_future = $self->loop->timeout_future(after => QUEUE_TIMEOUT);
     Future->wait_any(
         $self->client->submit(
             name    => $req_storage->{name},
