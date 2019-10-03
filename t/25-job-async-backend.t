@@ -12,13 +12,15 @@ use IO::Async::Loop::Mojo;
 
 our @PENDING_JOBS;
 
+$ENV{QUEUE_TIMEOUT} = 2;
+
 my $loop = IO::Async::Loop::Mojo->new;
 our $LAST_ID = 999;
 package t::SampleClient {
     use parent qw(Job::Async::Client);
 
     sub loop { shift->{loop} //= $loop }
-    sub start { Future->done }
+    sub start { shift->{startup_future} = Future->done }
 
     sub submit {
         my ($self, %args) = @_;

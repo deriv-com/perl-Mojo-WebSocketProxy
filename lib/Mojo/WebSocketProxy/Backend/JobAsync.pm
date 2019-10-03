@@ -13,6 +13,7 @@ use Job::Async;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Log::Any qw($log);
 use MojoX::JSON::RPC::Client;
+use Syntax::Keyword::Try;
 
 ## VERSION
 
@@ -29,6 +30,19 @@ via L<Job::Async>.
 
 =cut
 
+=head1 CONSTANTS
+
+=head2 QUEUE_TIMEOUT
+
+A duration of timeout in seconds (default: 300) for receiving response from RPC queue.
+The default value can be orverriden by setting an environment variable of the same name:
+
+    $ENV{QUEUE_TIMEOUT} = 2;
+
+=cut
+
+use constant QUEUE_TIMEOUT => $ENV{QUEUE_TIMEOUT} // 300;
+
 =head1 CLASS METHODS
 
 =head2 new
@@ -43,12 +57,12 @@ Containing L<IO::Async::Loop> instance.
 
 =item jobman => Job::Async
 
-Optional L<Job::Async> instance.
+Optional L<Job::Async> instance. If non-empty, it should be already added to the C<loop>.
 
 =item client => Job::Async::Client
 
-Optional L<Job::Async::Client> instance. Will be constructed from
-C<< $jobman->client >> if not provided.
+Optional L<Job::Async::Client> instance. If non-empty, it should be constructed by  C<< $jobman->client >>.
+Will be constructed from C<< $jobman->client >> if not provided.
 
 =back
 
@@ -56,10 +70,6 @@ C<< $jobman->client >> if not provided.
 
 sub new {
     my ($class, %args) = @_;
-    # Avoid holding these - we only want the Job::Async::Client instance, and everything else
-    # should be attached to the loop (which sticks around longer than we expect to).
-    delete $args{loop};
-    delete $args{jobman};
 
     my $self = bless \%args, $class;
 
@@ -78,7 +88,50 @@ Returns the L<Job::Async::Client> instance.
 
 =cut
 
-sub client { return shift->{client} }
+sub client {
+    my $self = shift;
+    return $self->{client} //= do {
+        # Let's not pull it in unless we have it already, but we do want to avoid sharing number
+        # sequences in forked workers.
+        Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
+        my $client_job = $self->jobman->client(redis => $self->{redis});
+        $client_job->start;
+        $client_job;
+    };
+}
+
+=head2 loop
+
+    $client = $backend->loop
+
+Returns the async IO loop object.
+
+=cut
+
+sub loop {
+    my $self = shift;
+    return $self->{loop} //= do {
+        require IO::Async::Loop::Mojo;
+        local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
+        IO::Async::Loop->new;
+    };
+}
+
+=head2 jobman
+
+    $jobman = $backend->jobman
+
+Returns an object of L<Job::Async> that acts as job manager for the queue client.
+
+=cut
+
+sub jobman {
+    my $self = shift;
+    return $self->{jobman} //= do {
+        $self->loop->add(my $jobman = Job::Async->new);
+        $jobman;
+        }
+}
 
 =head2 call_rpc
 
@@ -91,65 +144,70 @@ sub call_rpc {
     my $method = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
-    # We'd like to provide some flexibility for people trying to integrate this into
-    # other systems, so any combination of Job::Async::Client, Job::Async and/or IO::Async::Loop
-    # instance can be provided here.
-    $self->{client} //= do {
-        # We don't hold a ref to this, since that might introduce unfortunate cycles
-        $self->{loop} //= do {
-            require IO::Async::Loop::Mojo;
-            local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
-            IO::Async::Loop->new;
-        };
-        $self->{loop}->add(my $jobman = Job::Async->new);
-
-        # Let's not pull it in unless we have it already, but we do want to avoid sharing number
-        # sequences in forked workers.
-        Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
-        my $client_job = $jobman->client(redis => $self->{redis});
-        $client_job->start->retain;
-        $client_job;
-    };
-
     $req_storage->{call_params} ||= {};
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
 
-    my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hook             = delete($req_storage->{before_call})             || [];
+    my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
+    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
+    my $before_call_hooks             = delete($req_storage->{before_call})             || [];
+    my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb})          || 0;
+
     my $params = $self->make_call_params($c, $req_storage);
     $log->debugf("method %s has params = %s", $method, $params);
-    $_->($c, $req_storage) for @$before_call_hook;
-    $self->client->submit(
-        name   => $req_storage->{name},
-        params => encode_json_utf8($params)
+
+    foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
+
+    my $timeout_future = $self->loop->timeout_future(after => QUEUE_TIMEOUT);
+    Future->wait_any(
+        $self->client->submit(
+            name    => $req_storage->{name},
+            params  => encode_json_utf8($params),
+        ),
+        $timeout_future
         )->on_ready(
         sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
 
-            $_->($c, $req_storage) for @$before_get_rpc_response_hook;
+            foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage) }
 
             # unconditionally stop any further processing if client is already disconnected
 
             return Future->done unless $c and $c->tx;
 
             my $api_response;
-
+            my $result;
             if ($f->is_done) {
-                my $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
+                try {
+                    $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($f->get));
 
-                $_->($c, $req_storage, $result) for @$after_got_rpc_response_hook;
+                    foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage, $result) }
 
-                $api_response = $rpc_response_cb->($result->result);
-                stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
+                    $api_response = $rpc_response_cb->($result->result);
+                    stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
+                }
+                catch {
+                    my $error = $@;
+                    $log->errorf("Failed to process response of method %s: %s", $method, $error);
+                    stats_inc("rpc_queue.client.jobs.fail",
+                        {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $error]});
+
+                    $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
+                    $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                };
             } else {
-                my ($failure) = $f->failure;
-                $log->warnf("method %s failed: %s", $method, $failure);
+                my $failure = $f->is_failed ? $f->failure // '' : 'RPC request was cancelled. Subscription is not ready.';
+
+                $log->errorf("Method %s failed: %s", $method, $failure);
                 stats_inc("rpc_queue.client.jobs.fail",
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
+                if ($timeout_future->is_failed){
+                    $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
+                } else {
+                    $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                }
             }
 
             return unless $api_response;
@@ -160,3 +218,4 @@ sub call_rpc {
 }
 
 1;
+
