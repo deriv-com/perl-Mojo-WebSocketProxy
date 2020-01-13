@@ -128,6 +128,12 @@ supported.
 
 Alternate backends are selected by using the C<backend> action option.
 
+=head2 rpc_failure_cb
+
+A sub routine reference to call if the remote call fails at a http level. 
+Called with C<< Mojolicious::Controller >> the rpc_response 
+and C<< $req_storage >> 
+
 =head2 before_forward
 
     before_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
