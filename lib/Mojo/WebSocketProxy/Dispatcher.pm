@@ -194,7 +194,6 @@ sub _run_hooks {
 
 sub dispatch {
     my ($c, $args) = @_;
-
     my $log = $c->app->log;
     $log->debug("websocket got json " . $c->dumper($args));
 
@@ -217,10 +216,26 @@ sub forward {
             grep { $_ } (ref $req_storage->{$hook} eq 'ARRAY' ? @{$req_storage->{$hook}} : $req_storage->{$hook}),
         ];
     }
+    
+    my $method = $req_storage->{name} // $req_storage->{msg_type} // $req_storage->{method};
 
-    my $backend_name = $req_storage->{backend} // "default";
-    my $backend = $c->wsp_config->{backends}{$backend_name}
-        or die "Cannot dispatch request - no backend named '$backend_name'";
+    my $backend_name = delete $req_storage->{backend};
+    unless $backend_name {
+        # trying to get backend from action settings for
+        # undispatched message (e.g. methods with instead_of_foward hooks)
+        my $action = $c->wsp_config->{actions}->{$method} // do {
+            my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised action');
+            $c->send({json => $err}, $req_storage);
+            return;
+        };
+        $backend_name = $action->{backend} // 'default';
+    }
+
+    my $backend = $c->wsp_config->{backends}{$backend_name} // do {
+        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised backend');
+        $c->send({json => $err}, $req_storage);
+        return;
+    };
 
     $backend->call_rpc($c, $req_storage);
 
