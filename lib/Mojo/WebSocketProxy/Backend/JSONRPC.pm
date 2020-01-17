@@ -20,6 +20,7 @@ __PACKAGE__->register_type('jsonrpc');
 sub url { return shift->{url} }
 
 my $request_number = 0;
+
 =head2 call_rpc
 
 Description: Makes a remote call to a  process  returning the result to the client in JSON format. 
@@ -91,7 +92,7 @@ sub call_rpc {
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
-    my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb}) || 0;
+    my $rpc_failure_cb = delete($req_storage->{rpc_failure_cb}) // undef;
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -132,7 +133,7 @@ sub call_rpc {
 
                 if ($res->is_error) {
                     warn $res->error_message;
-                    $rpc_failure_cb->($c, $res, $req_storage ) if $rpc_failure_cb;
+                    $rpc_failure_cb->($c, $res, $req_storage) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;

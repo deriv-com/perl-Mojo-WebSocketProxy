@@ -218,6 +218,9 @@ sub forward {
         ];
     }
 
+    # default to config (generic) only if call specific is not defined
+    $req_storage->{rpc_failure_cb} //= $config->{rpc_failure_cb};
+
     my $backend_name = $req_storage->{backend} // "default";
     my $backend = $c->wsp_config->{backends}{$backend_name}
         or die "Cannot dispatch request - no backend named '$backend_name'";
