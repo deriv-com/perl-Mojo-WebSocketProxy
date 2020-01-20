@@ -132,7 +132,43 @@ Alternate backends are selected by using the C<backend> action option.
 
 A sub routine reference to call if the remote call fails at a http level. 
 Called with C<< Mojolicious::Controller >> the rpc_response 
-and C<< $req_storage >> 
+and C<< $req_storage >>
+
+A default rpc_failure_cb could be provided in the startup sub routine
+
+    sub startup {
+        my $self = shift;
+        $self->plugin(
+            'web_socket_proxy' => {
+                actions => [
+                    ['json_key', {some_param => 'some_value'}]
+                ],
+                base_path => '/api',
+                url => 'http://rpc-host.com:8080/',
+                rpc_failure_cb => sub {
+                    my ($c, $res, $req_storage) = @_;
+                    warn "Something went wrong an RPC call";
+                    return undef;
+                }
+
+            }
+        );
+   }
+
+Call specific sub routine could be specified in call_rpc arguments
+
+    $c->call_rpc({
+        args           => $args,
+        origin_args    => $req_storage->{origin_args},
+        method         => 'ticks_history',
+        rpc_failure_cb => sub {
+            if ($worker) {
+                warn "Something went wront with this rpc call : ".$method;
+                $worker->unregister;
+            }
+        },
+    }
+
 
 =head2 before_forward
 
