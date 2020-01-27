@@ -130,7 +130,7 @@ Alternate backends are selected by using the C<backend> action option.
 
 =head2 rpc_failure_cb
 
-A sub routine reference to call if the remote call fails at a http level. 
+A subroutine reference to call when the RPC call fails at the HTTP level. 
 Called with C<< Mojolicious::Controller >> the rpc_response 
 and C<< $req_storage >>
 
@@ -147,7 +147,7 @@ A default rpc_failure_cb could be provided in the startup sub routine
                 url => 'http://rpc-host.com:8080/',
                 rpc_failure_cb => sub {
                     my ($c, $res, $req_storage) = @_;
-                    warn "Something went wrong an RPC call";
+                    warn "RPC call failed";
                     return undef;
                 }
 
