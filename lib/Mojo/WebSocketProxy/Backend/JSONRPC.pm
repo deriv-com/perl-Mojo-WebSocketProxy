@@ -118,7 +118,15 @@ sub call_rpc {
                 if (!$res) {
                     my $tx = $client->tx;
                     $req_storage->{req_url} = $tx->req->url;
-                    $rpc_failure_cb->($c, $res, $req_storage, $tx->error) if $rpc_failure_cb;
+                    my $err = $tx->error;
+                    $rpc_failure_cb->(
+                        $c, $res,
+                        $req_storage,
+                        {
+                            code    => $err->{code},
+                            message => $err->{message},
+                            type    => 'WrongResponse',
+                        }) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
@@ -132,7 +140,8 @@ sub call_rpc {
                         $req_storage,
                         {
                             code    => $res->error_code,
-                            message => $res->error_message
+                            message => $res->error_message,
+                            type    => 'CallError',
                         }) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
