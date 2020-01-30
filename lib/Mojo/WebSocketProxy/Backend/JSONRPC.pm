@@ -74,7 +74,6 @@ Returns undef.
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
-    my $log = $c->app->log;
     state $client = MojoX::JSON::RPC::Client->new;
 
     my $url = $req_storage->{url} // $self->url;
@@ -92,7 +91,7 @@ sub call_rpc {
     my $before_get_rpc_response_hook = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
-    my $rpc_failure_cb = delete($req_storage->{rpc_failure_cb});
+    my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -117,7 +116,7 @@ sub call_rpc {
 
                 my $api_response;
                 if (!$res) {
-                    my $tx      = $client->tx;
+                    my $tx = $client->tx;
                     $req_storage->{req_url} = $tx->req->url;
                     $rpc_failure_cb->($c, $res, $req_storage, $tx->error) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
@@ -128,8 +127,13 @@ sub call_rpc {
                 $_->($c, $req_storage, $res) for @$after_got_rpc_response_hook;
 
                 if ($res->is_error) {
-                    warn $res->error_message;
-                    $rpc_failure_cb->($c, $res, $req_storage) if $rpc_failure_cb;
+                    $rpc_failure_cb->(
+                        $c, $res,
+                        $req_storage,
+                        {
+                            code    => $res->error_code,
+                            message => $res->error_message
+                        }) if $rpc_failure_cb;
                     $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;

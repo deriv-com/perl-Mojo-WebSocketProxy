@@ -160,8 +160,8 @@ sub call_rpc {
     my $timeout_future = $self->loop->timeout_future(after => QUEUE_TIMEOUT);
     Future->wait_any(
         $self->client->submit(
-            name    => $req_storage->{name},
-            params  => encode_json_utf8($params),
+            name   => $req_storage->{name},
+            params => encode_json_utf8($params),
         ),
         $timeout_future
         )->on_ready(
@@ -203,7 +203,7 @@ sub call_rpc {
                     {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id, 'error:' . $failure]});
 
                 $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
-                if ($timeout_future->is_failed){
+                if ($timeout_future->is_failed) {
                     $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
                 } else {
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
