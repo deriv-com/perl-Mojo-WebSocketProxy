@@ -146,7 +146,7 @@ A default rpc_failure_cb could be provided in the startup sub routine
                 base_path => '/api',
                 url => 'http://rpc-host.com:8080/',
                 rpc_failure_cb => sub {
-                    my ($c, $res, $req_storage) = @_;
+                    my ($c, $res, $req_storage, $error) = @_;
                     warn "RPC call failed";
                     return undef;
                 }
@@ -163,7 +163,7 @@ Call specific sub routine could be specified in call_rpc arguments
         method         => 'ticks_history',
         rpc_failure_cb => sub {
             if ($worker) {
-                warn "Something went wront with this rpc call : ".$method;
+                warn "Something went wrong with this rpc call : " . $method;
                 $worker->unregister;
             }
         },

@@ -2,9 +2,8 @@ Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
 
-          2019-09-20 01:44:27+00:00 UTC
-    - Modify log level for Wrong Responses from JSONRPC calls.
-    - Send wrong response statistics to DataDog.
+    - Remove warning line for RPC communication failure.
+    - Add documentation about RPC failure callback.
 0.13      2019-09-20 01:44:27+00:00 UTC
 
     - Change sanity error type
