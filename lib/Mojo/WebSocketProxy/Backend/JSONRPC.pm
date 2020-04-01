@@ -119,7 +119,8 @@ sub call_rpc {
                     my $tx = $client->tx;
                     $req_storage->{req_url} = $tx->req->url;
                     my $err = $tx->error;
-                    $rpc_failure_cb->(
+                    my $cb_processed_totally;
+                    $cb_processed_totally = $rpc_failure_cb->(
                         $c, $res,
                         $req_storage,
                         {
@@ -127,6 +128,7 @@ sub call_rpc {
                             message => $err->{message},
                             type    => 'WrongResponse',
                         }) if $rpc_failure_cb;
+                    return if $cb_processed_totally;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
