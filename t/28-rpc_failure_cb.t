@@ -19,8 +19,8 @@ my $call_send_count = 0;
 $mocked_dispatcher->mock('send', sub {$call_send_count++; return $mocked_dispatcher->original("send")->(@_)});
 package t::FrontEnd {
     use base 'Mojolicious';
-    our ($rpc_response_cb_called, $rpc_failure_cb_called, $rpc_failure_result);
-
+    our ($rpc_response_cb_called, $rpc_failure_cb_called, $failure_block_response);
+    $t::FrontEnd::failure_block_response = 1;
     sub startup {
         my $self = shift;
         $self->plugin(
@@ -34,10 +34,10 @@ package t::FrontEnd {
                             },
                             rpc_failure_cb => sub {
                                 my ($c, $res, $req_storage) = @_;
-                                $c->send({json => {'rpc_failure_cb' => 'ok'}}, $req_storage) if $rpc_failure_result;
+                                $c->send({json => {'rpc_failure_cb' => 'ok'}}, $req_storage) if $failure_block_response;
                                 $rpc_failure_cb_called = 1;
-                                return $rpc_failure_result;
-                            }
+                            },
+                            failure_block_response => $failure_block_response,
                         }
                     ],
                 ],
@@ -49,28 +49,28 @@ package t::FrontEnd {
 
 use Mojo::IOLoop;
 
+$t::FrontEnd::failure_block_response = 1;
 test_wsp {
     my ($t) = @_;
-    $t::FrontEnd::rpc_failure_result = 1;
     $call_send_count = 0;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
     ok($t::FrontEnd::rpc_failure_cb_called,   'rpc failure cb is called');
-    is(decode_json_utf8($t->message->[1])->{rpc_failure_cb}, 'ok');
+    is(decode_json_utf8($t->message->[1])->{rpc_failure_cb}, 'ok', 'send is called by rpc failure cb');
     is($call_send_count, 1, 'send called only once, in rpc_failure_cb');
 }
 't::FrontEnd';
 
+$t::FrontEnd::failure_block_response = 0;
 test_wsp {
     my ($t) = @_;
-    $t::FrontEnd::rpc_failure_result = 0;
     $call_send_count = 0;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
     ok($t::FrontEnd::rpc_failure_cb_called,   'rpc failure cb is called');
-    is(decode_json_utf8($t->message->[1])->{error}{code}, 'WrongResponse');
+    is(decode_json_utf8($t->message->[1])->{error}{code}, 'WrongResponse', 'send is called after rpc_failure cb');
     is($call_send_count, 1, 'send called only once, after called rpc_failure_cb');
 }
 't::FrontEnd';

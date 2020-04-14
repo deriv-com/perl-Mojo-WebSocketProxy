@@ -92,6 +92,7 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
+    # If tx failed, this flag will decide whether send response.
     my $failure_block_response       = delete($req_storage->{failure_block_response});
 
     my $callobj = {
