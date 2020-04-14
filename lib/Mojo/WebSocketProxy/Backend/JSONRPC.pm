@@ -92,6 +92,7 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
+    my $failure_block_response       = delete($req_storage->{failure_block_response});
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -119,8 +120,7 @@ sub call_rpc {
                     my $tx = $client->tx;
                     $req_storage->{req_url} = $tx->req->url;
                     my $err = $tx->error;
-                    my $cb_processed_totally;
-                    $cb_processed_totally = $rpc_failure_cb->(
+                    $rpc_failure_cb->(
                         $c, $res,
                         $req_storage,
                         {
@@ -128,7 +128,7 @@ sub call_rpc {
                             message => $err->{message},
                             type    => 'WrongResponse',
                         }) if $rpc_failure_cb;
-                    return if $cb_processed_totally;
+                    return if $failure_block_response;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
