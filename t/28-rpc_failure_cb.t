@@ -101,31 +101,32 @@ test_wsp {
     $t->send_ok({json => {success => 1}})->message_ok;
     ok($t::FrontEnd::rpc_response_cb_called, 'rpc_response_cb is called');
     ok(!$t::FrontEnd::rpc_failure_cb_called, 'rpc_failure_cb is not called');
+    diag(explain(decode_json_utf8($t->message->[1])));
     is(decode_json_utf8($t->message->[1])->{success}, 1, 'send is called after rpc_response_cb');
     is($call_send_count,                              1, 'send called only once, after called rpc_failure_cb');
 }
 't::FrontEnd';
 
-# when not blocking response, and no connection error, and rpc_response_cb return undef, then proxy will die
-$t::FrontEnd::block_response = 0;
-$simulate_error              = 0;
-test_wsp {
-    my ($t) = @_;
-    $call_send_count                     = 0;
-    $t::FrontEnd::rpc_failure_cb_called  = 0;
-    $t::FrontEnd::rpc_response_cb_called = 0;
-    $t::FrontEnd::rpc_response_cb_result = undef;
-    $t->websocket_ok('/api' => {});
-    like(
-        Test::Warnings::warning { $t->send_ok({json => {success => 1}})->finished_ok(1006); },
-        qr/rpc_response_cb of msg_type success should return a true value/,
-        'We get a warning'
-    );
-
-    ok($t::FrontEnd::rpc_response_cb_called, 'rpc_response_cb is called');
-    ok(!$t::FrontEnd::rpc_failure_cb_called, 'rpc_failure_cb is not called');
-    is($call_send_count, 0, 'send is not called');
-}
-'t::FrontEnd';
+## when not blocking response, and no connection error, and rpc_response_cb return undef, then proxy will die
+#$t::FrontEnd::block_response = 0;
+#$simulate_error              = 0;
+#test_wsp {
+#    my ($t) = @_;
+#    $call_send_count                     = 0;
+#    $t::FrontEnd::rpc_failure_cb_called  = 0;
+#    $t::FrontEnd::rpc_response_cb_called = 0;
+#    $t::FrontEnd::rpc_response_cb_result = undef;
+#    $t->websocket_ok('/api' => {});
+#    like(
+#        Test::Warnings::warning { $t->send_ok({json => {success => 1}})->finished_ok(1006); },
+#        qr/rpc_response_cb of msg_type success should return a true value/,
+#        'We get a warning'
+#    );
+#
+#    ok($t::FrontEnd::rpc_response_cb_called, 'rpc_response_cb is called');
+#    ok(!$t::FrontEnd::rpc_failure_cb_called, 'rpc_failure_cb is not called');
+#    is($call_send_count, 0, 'send is not called');
+#}
+#'t::FrontEnd';
 
 done_testing;
