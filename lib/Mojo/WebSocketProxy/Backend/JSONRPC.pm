@@ -153,9 +153,7 @@ sub call_rpc {
                 }
 
                 $api_response = $rpc_response_cb->($res->result);
-                return if $block_response;
-
-                die "rpc_response_cb of msg_type $msg_type should return a true value" unless $api_response;
+                return if $block_response || $api_response;
                 $c->send({json => $api_response}, $req_storage);
 
                 return;
