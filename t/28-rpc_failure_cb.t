@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+use Test::Warnings;
 
 use t::TestWSP qw/test_wsp/;
 use Test::More;
@@ -8,6 +9,7 @@ use JSON::MaybeUTF8 ':v1';
 use Mojo::IOLoop;
 use Future;
 use Test::MockModule;
+$ENV{MOJO_INACTIVITY_TIMEOUT} = 1;
 
 my $mocked_response = Test::MockModule->new('Mojo::Message::Response');
 my $simulate_error;
@@ -16,11 +18,13 @@ $mocked_response->mock('is_success',      sub { return !$simulate_error });
 $mocked_response->mock('is_client_error', sub { return !$simulate_error });
 
 my $mocked_dispatcher = Test::MockModule->new('Mojo::WebSocketProxy::Dispatcher');
-my $call_send_count = 0;
-$mocked_dispatcher->mock('send', sub {$call_send_count++; return $mocked_dispatcher->original("send")->(@_)});
+my $call_send_count   = 0;
+$mocked_dispatcher->mock('send', sub { $call_send_count++; return $mocked_dispatcher->original("send")->(@_) });
+
 package t::FrontEnd {
     use base 'Mojolicious';
     our ($rpc_response_cb_called, $rpc_failure_cb_called, $block_response, $rpc_response_cb_result);
+
     sub startup {
         my $self = shift;
         $self->plugin(
@@ -29,9 +33,8 @@ package t::FrontEnd {
                         'success',
                         {
                             rpc_response_cb => sub {
-                                my 
                                 $rpc_response_cb_called = 1;
-                                return $rpc_response_cb_result unless $block_response;
+                                return $rpc_response_cb_result;
                             },
                             rpc_failure_cb => sub {
                                 my ($c, $res, $req_storage) = @_;
@@ -50,12 +53,16 @@ package t::FrontEnd {
 
 use Mojo::IOLoop;
 
-# block response
-$simulate_error = 0;
+# When rpc has an error ($simulate_error is true), and
+# block_response is true, then proxy will not send response to client automatically.
+# but rpc_failure_cb still can send back the result itself.
+$simulate_error              = 1;
 $t::FrontEnd::block_response = 1;
 test_wsp {
     my ($t) = @_;
-    $call_send_count = 0;
+    $call_send_count                     = 0;
+    $t::FrontEnd::rpc_failure_cb_called  = 0;
+    $t::FrontEnd::rpc_response_cb_called = 0;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
@@ -65,16 +72,59 @@ test_wsp {
 }
 't::FrontEnd';
 
+# when not blocking response, proxy will send back an error response to client
 $t::FrontEnd::block_response = 0;
 test_wsp {
     my ($t) = @_;
-    $call_send_count = 0;
+    $call_send_count                     = 0;
+    $t::FrontEnd::rpc_failure_cb_called  = 0;
+    $t::FrontEnd::rpc_response_cb_called = 0;
     $t->websocket_ok('/api' => {});
     $t->send_ok({json => {success => 1}})->message_ok;
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
     ok($t::FrontEnd::rpc_failure_cb_called,   'rpc failure cb is called');
     is(decode_json_utf8($t->message->[1])->{error}{code}, 'WrongResponse', 'send is called after rpc_failure cb');
     is($call_send_count, 1, 'send called only once, after called rpc_failure_cb');
+}
+'t::FrontEnd';
+
+# when not blocking response, and no connection error, then rpc_response_cb should return a valid response, and proxy will send back this response
+$t::FrontEnd::block_response = 0;
+$simulate_error              = 0;
+test_wsp {
+    my ($t) = @_;
+    $call_send_count                     = 0;
+    $t::FrontEnd::rpc_failure_cb_called  = 0;
+    $t::FrontEnd::rpc_response_cb_called = 0;
+    $t::FrontEnd::rpc_response_cb_result = {success => 1};
+    $t->websocket_ok('/api' => {});
+    $t->send_ok({json => {success => 1}})->message_ok;
+    ok($t::FrontEnd::rpc_response_cb_called, 'rpc_response_cb is called');
+    ok(!$t::FrontEnd::rpc_failure_cb_called, 'rpc_failure_cb is not called');
+    is(decode_json_utf8($t->message->[1])->{success}, 1, 'send is called after rpc_response_cb');
+    is($call_send_count,                              1, 'send called only once, after called rpc_failure_cb');
+}
+'t::FrontEnd';
+
+# when not blocking response, and no connection error, and rpc_response_cb return undef, then proxy will die
+$t::FrontEnd::block_response = 0;
+$simulate_error              = 0;
+test_wsp {
+    my ($t) = @_;
+    $call_send_count                     = 0;
+    $t::FrontEnd::rpc_failure_cb_called  = 0;
+    $t::FrontEnd::rpc_response_cb_called = 0;
+    $t::FrontEnd::rpc_response_cb_result = undef;
+    $t->websocket_ok('/api' => {});
+    like(
+        Test::Warnings::warning { $t->send_ok({json => {success => 1}})->finished_ok(1006); },
+        qr/rpc_response_cb of msg_type success should return a true value/,
+        'We get a warning'
+    );
+
+    ok($t::FrontEnd::rpc_response_cb_called, 'rpc_response_cb is called');
+    ok(!$t::FrontEnd::rpc_failure_cb_called, 'rpc_failure_cb is not called');
+    is($call_send_count, 0, 'send is not called');
 }
 't::FrontEnd';
 

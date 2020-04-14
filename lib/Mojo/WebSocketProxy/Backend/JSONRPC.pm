@@ -93,7 +93,7 @@ sub call_rpc {
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
     # This flag will decide whether it should send back response.
-    my $block_response       = delete($req_storage->{block_response});
+    my $block_response = delete($req_storage->{block_response});
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -155,7 +155,7 @@ sub call_rpc {
                 $api_response = $rpc_response_cb->($res->result);
                 return if $block_response;
 
-                die "rpc_response_cb of $msg_type should return a true value" unless $api_response;
+                die "rpc_response_cb of msg_type $msg_type should return a true value" unless $api_response;
                 $c->send({json => $api_response}, $req_storage);
 
                 return;
