@@ -92,7 +92,9 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
-    # This flag will decide whether it should send back response.
+    # If this flag true, then proxy will not send the rpc response to the client back.
+    # It is very useful when websocket app itself (not websocket client) want to get information from rpc.
+
     my $block_response = delete($req_storage->{block_response});
 
     my $callobj = {
