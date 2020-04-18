@@ -92,6 +92,10 @@ sub call_rpc {
     my $after_got_rpc_response_hook  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hook             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb               = delete($req_storage->{rpc_failure_cb});
+    # If this flag true, then proxy will not send the rpc response to the client back.
+    # It is very useful when websocket app itself (not websocket client) want to get information from rpc.
+
+    my $block_response = delete($req_storage->{block_response});
 
     my $callobj = {
         # enough for short-term uniqueness
@@ -127,6 +131,7 @@ sub call_rpc {
                             message => $err->{message},
                             type    => 'WrongResponse',
                         }) if $rpc_failure_cb;
+                    return if $block_response;
                     $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
@@ -143,15 +148,14 @@ sub call_rpc {
                             message => $res->error_message,
                             type    => 'CallError',
                         }) if $rpc_failure_cb;
+                    return if $block_response;
                     $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
                     $c->send({json => $api_response}, $req_storage);
                     return;
                 }
 
                 $api_response = $rpc_response_cb->($res->result);
-
-                return unless $api_response;
-
+                return if $block_response || !$api_response;
                 $c->send({json => $api_response}, $req_storage);
 
                 return;
