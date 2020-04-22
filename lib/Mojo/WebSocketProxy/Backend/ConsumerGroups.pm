@@ -147,15 +147,14 @@ sub send_request {
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request_data->@*), sub {
-        my ($redis, $error, $message_id) = @_;
-        use Data::Dumper;
-        warn Dumper $error;
-        warn Dumper $message_id;
-        $f->done;
+        my ($redis, $err, $msg_id) = @_;
+
+        return $f->fail($err) if $err;
+
+        $f->done($msg_id);
     });
 
     return $f;
-
 }
 
 sub prepare_request {

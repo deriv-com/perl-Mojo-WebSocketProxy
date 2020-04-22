@@ -1,5 +1,7 @@
 use Test::More;
 use Mojo::WebSocketProxy::Backend::ConsumerGroups;
+use Test::MockObject;
+use Test::Fatal;
 
 
 subtest whoami => sub {
@@ -22,10 +24,20 @@ subtest whoami => sub {
 };
 
 subtest send_reuqest => sub {
-    my $c = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(redis_uri => 'redis://127.0.0.1:6359');
 
-    $c->send_request([test => 123])->get;
-    ok 1;
+    my $redis = Test::MockObject->new();
+    $redis->mock( _execute => sub { pop->(undef, 'test error') });
+
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(redis => $redis);
+    my $err = exception { $cg_backend->send_request()->get };
+
+    like $err, qr{^test error}, 'Got correct error';
+
+    $redis->mock( _execute => sub { pop->(undef, undef, 'msg_id_123') });
+
+    my $msg_id = eval { $cg_backend->send_request()->get };
+
+    is $msg_id, 'msg_id_123', 'Got correct message id';
 };
 
 
