@@ -45,8 +45,14 @@ sub redis {
 }
 
 sub whoami {
+    my $self = shift;
+
+    return $self->{whoami} if $self->{whoami};
+
     Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
-    return shift->{whoami} //= Data::UUID->new->create_str();
+    $self->{whoami} = Data::UUID->new->create_str();
+
+    return $self->{whoami};
 }
 
 sub wait_for_messages {
@@ -73,27 +79,18 @@ sub call_rpc {
     # make sure that we are already waiting for messages
     # calling this sub multiple time is safe, it will be executed once
     $self->wait_for_messages();
-    
-    my $method = $req_storage->{method};
+    my $request_data = $self->prepare_request($c,$req_storage);
+
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
-    $req_storage->{call_params} ||= {};
-    
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
     my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
     my $before_call_hooks             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb})          || 0;
 
-    my $params = $self->make_call_params($c, $req_storage);
-    my $stash_params = $req_storage->{stash_params};
-    
     foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
-    
-    my $request_data = [
-        'rpc', $method, 'args', encode_json_utf8($params), 'stash', encode_json_utf8($stash_params), 'who', $self->whoami, 'timeout', time + RESPONSE_TIMEOUT, 
-    ];
-    
+
     $self->redis->_execute(xadd => 'XADD' => ('rpc_requests', '*', $request_data->@*), sub {
         my ($redis, $error, $message_id) = @_;
         
@@ -143,6 +140,41 @@ sub call_rpc {
     });
     
     return;
+}
+
+sub send_request {
+    my ($self, $request_data) = @_;
+
+    my $f = $self->loop->new_future;
+    $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request_data->@*), sub {
+        my ($redis, $error, $message_id) = @_;
+        use Data::Dumper;
+        warn Dumper $error;
+        warn Dumper $message_id;
+        $f->done;
+    });
+
+    return $f;
+
+}
+
+sub prepare_request {
+    my ($self, $c ,$req_storage) = @_;
+
+    my $method = $req_storage->{method};
+
+    $req_storage->{call_params} ||= {};
+
+    my $params = $self->make_call_params($c, $req_storage);
+    my $stash_params = $req_storage->{stash_params};
+
+    return [
+        rpc     => $method,
+        args    => encode_json_utf8($params),
+        stash   => encode_json_utf8($stash_params),
+        who     => $self->whoami,
+        timeout => time + RESPONSE_TIMEOUT,
+    ];
 }
 
 1;
