@@ -9,6 +9,9 @@ use IO::Async::Loop::Mojo;
 use Data::UUID;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Syntax::Keyword::Try;
+use curry::weak;
+
+use Mojo::WebSocketProxy::Backend::ConsumerGroups::Request;
 
 use parent qw(Mojo::WebSocketProxy::Backend);
 
@@ -44,6 +47,10 @@ sub redis {
     return $self->{redis} //= Mojo::Redis2->new(url => $self->{redis_uri});
 }
 
+sub timeout {
+    return shift->{timeout} //= RESPONSE_TIMEOUT;
+}
+
 sub whoami {
     my $self = shift;
 
@@ -56,124 +63,131 @@ sub whoami {
 }
 
 sub wait_for_messages {
-    my $self = shift;
-    $self->{already_waiting} //= 
-    $self->redis->subscribe([$self->whoami], sub {
-        $self->redis->on('message', sub {
-            my ($redis, $raw_message) = @_;
-            my $message = decode_json_utf8($raw_message);
-            
-            my $completion_future = $self->pending_requests->{$message->{original_id}};
-            
-            if ($completion_future) {
-                $completion_future->done($message);
-                delete $self->pending_requests->{$message->{original_id}};
-            }
-        });
-    });
+    my ($self) = @_;
+    $self->{already_waiting} //= $self->redis->subscribe(
+        [$self->whoami],
+        $self->$curry::weak(sub {
+            my ($self) = @_;
+            $self->redis->on('message', $self->$curry::weak('_on_message'));
+        })
+    );
+
+    return;
+}
+
+sub _on_message {
+    my ($self, $redis, $raw_message) = @_;
+
+    my $message = decode_json_utf8($raw_message);
+
+    my $completion_future = delete $self->pending_requests->{$message->{original_id}};
+
+    return unless $completion_future;
+
+    $completion_future->done($message);
+
+    return;
 }
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
-    
+
     # make sure that we are already waiting for messages
     # calling this sub multiple time is safe, it will be executed once
     $self->wait_for_messages();
-    my $request_data = $self->prepare_request($c,$req_storage);
 
-    my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
+    $req_storage->{call_params} ||= {};
+    $req_storage->{msg_type} ||= $req_storage->{method};
 
-    my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
-    my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hooks             = delete($req_storage->{before_call})             || [];
-    my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb})          || 0;
+    my $request = Mojo::WebSocketProxy::Backend::ConsumerGroups::Request->new(
+        c => $c,
+        storage => $req_storage,
+        args => $self->make_call_params($c, $req_storage),
+        response_cb => $self->get_rpc_response_cb($c, $req_storage),
+        completed => $self->loop->new_future(),
+    );
 
-    foreach my $hook (@$before_call_hooks) { $hook->($c, $req_storage) }
+    $request->before_call;
 
-    $self->redis->_execute(xadd => 'XADD' => ('rpc_requests', '*', $request_data->@*), sub {
-        my ($redis, $error, $message_id) = @_;
+    my $rpc_response_cb = sub {}; #TODO: Move it to request;
+    my $rpc_failure_cb  = sub {}; #TODO: Move it to request;
+    my $msg_type = ''; #TODO: Move it to request;
+    $self->request()->then(sub {
+        my ($message) = @_;
+
+        $request->before_get_rpc_response;
+
+        return Future->done unless $request->c and $request->c->tx;
+        my $api_response;
+        my $result;
         
-        my $f = $self->loop->new_future();
-        $self->pending_requests->{$message_id} = $f;
+        try {
+            $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($message->{response}));
+            $request->after_got_rpc_response($result);
+            $api_response = $rpc_response_cb->($result->result);
+        } catch {
+            my $error = $@;
+            $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
+            $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+        };
+            
+        $c->send({json => $api_response}, $req_storage);
         
-        Future->wait_any(
-            $self->loop->timeout_future(after => RESPONSE_TIMEOUT),
-            $f
-        )->then(sub {
-            my ($message) = @_;
-            
-            foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage) }
-            
-            return Future->done unless $c and $c->tx;
-            
-            my $api_response;
-            my $result;
-            
-            try {
-                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($message->{response}));
-                foreach my $hook (@$before_get_rpc_response_hooks) { $hook->($c, $req_storage, $result) }
-                $api_response = $rpc_response_cb->($result->result);
-            } catch {
-                    my $error = $@;
-                    $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
-                    $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-            };
-                
-            $c->send({json => $api_response}, $req_storage);
-            
-            return Future->done();
-        })->catch(sub {
-            my $error = shift;
-            delete $self->pending_requests->{$message_id};    
-            my $api_response;
-            
-            if ($error eq 'Timeout') {
-                $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
-            } else {
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-            }
-            
-            $c->send({json => $api_response}, $req_storage);
-            
-        })->retain;
-    });
-    
+        return Future->done();
+    })->catch(sub {
+        my $error = shift;
+        my $api_response;
+        
+        if ($error eq 'Timeout') {
+            $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
+        } else {
+            $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+        }
+        
+        $c->send({json => $api_response}, $req_storage);
+        
+    })->retain;
+
+
     return;
 }
 
-sub send_request {
-    my ($self, $request_data) = @_;
+
+sub request {
+    my ($self, $request) = @_;
+
+    my $complete_future = $self->loop->new_future;
+
+    my $sent_future = $self->_send_request($request)->then(sub {
+        my ($request, $msg_id) = @_;
+
+        $self->pending_requests->{$msg_id} = $complete_future;
+
+        $complete_future->on_cancel(sub { delete $self->pending_requests->{$msg_id} });
+
+        return Future->done;
+    });
+
+    return Future->wait_any(
+        $self->loop->timeout_future(after => $self->timeout),
+        Future->needs_all($sent_future, $complete_future),
+    );
+}
+
+
+sub _send_request {
+    my ($self, $request) = @_;
 
     my $f = $self->loop->new_future;
-    $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request_data->@*), sub {
+    $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request->serialize->@*), sub {
         my ($redis, $err, $msg_id) = @_;
 
         return $f->fail($err) if $err;
 
-        $f->done($msg_id);
+        return $f->done($request, $msg_id);
     });
 
     return $f;
-}
-
-sub prepare_request {
-    my ($self, $c ,$req_storage) = @_;
-
-    my $method = $req_storage->{method};
-
-    $req_storage->{call_params} ||= {};
-
-    my $params = $self->make_call_params($c, $req_storage);
-    my $stash_params = $req_storage->{stash_params};
-
-    return [
-        rpc     => $method,
-        args    => encode_json_utf8($params),
-        stash   => encode_json_utf8($stash_params),
-        who     => $self->whoami,
-        timeout => time + RESPONSE_TIMEOUT,
-    ];
 }
 
 1;
