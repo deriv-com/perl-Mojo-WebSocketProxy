@@ -102,11 +102,22 @@ subtest 'Request to rpc' => sub {
         timeout => 0.001,
     );
 
+    # Success request
+    $redis->mock( subscribe => sub {pop->(); return shift;});
+    $redis->mock( on => sub {pop->($redis, '{"original_id": "msg_id_123"}')});
+    my $result = eval {$cg_backend->request($request)->get};
+    is_deeply $result, {original_id => "msg_id_123"}, 'Got expected result';
+
+    # Timeout request
     my $err = exception { $cg_backend->request($request)->get };
     like $err, qr{^Timeout}, 'Got request time out';
+    is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty after fail';
 
-    is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty';
-
+    # Redis cmd request
+    $redis->mock( _execute => sub { pop->(undef, 'Redis Error', undef) });
+    $err = exception { $cg_backend->request($request)->get };
+    like $err, qr{^Redis Error}, 'Got Redis Error';
+    is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty after fail';
 };
 
 done_testing;
