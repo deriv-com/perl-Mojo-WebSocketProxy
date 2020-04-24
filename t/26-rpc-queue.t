@@ -53,7 +53,6 @@ subtest 'Response handling' => sub {
 };
 
 subtest whoami => sub {
-    return ok 1;
     my $rpc_backend1 = Mojo::WebSocketProxy::Backend::ConsumerGroups->new();
     my $rpc_backend2 = Mojo::WebSocketProxy::Backend::ConsumerGroups->new();
 
@@ -75,18 +74,15 @@ subtest whoami => sub {
 subtest _send_reuqest => sub {
     my $redis = Test::MockObject->new();
     $redis->mock( _execute => sub { pop->(undef, 'test error') });
-    my $request = Test::MockObject->new();
-    $request->mock( serialize => sub { [] });
 
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(redis => $redis);
-    my $err = exception { $cg_backend->_send_request($request)->get };
+    my $err = exception { $cg_backend->_send_request([])->get };
 
     like $err, qr{^test error}, 'Got correct error';
 
     $redis->mock( _execute => sub { pop->(undef, undef, 'msg_id_123') });
 
-    my ($request, $msg_id) = eval { $cg_backend->_send_request($request)->get };
-    ok $request, 'Got request object';
+    my $msg_id = eval { $cg_backend->_send_request([])->get };
     is $msg_id, 'msg_id_123', 'Got correct message id';
 };
 
@@ -94,28 +90,31 @@ subtest 'Request to rpc' => sub {
     my $redis = Test::MockObject->new();
     $redis->mock( _execute => sub { pop->(undef, undef, 'msg_id_123') });
 
-    my $request = Test::MockObject->new();
-    $request->mock( serialize => sub { [] });
-
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
         redis => $redis,
         timeout => 0.001,
     );
 
     # Success request
+    my $future = $cg_backend->request([]);
+
     $redis->mock( subscribe => sub {pop->(); return shift;});
     $redis->mock( on => sub {pop->($redis, '{"original_id": "msg_id_123"}')});
-    my $result = eval {$cg_backend->request($request)->get};
+    delete $cg_backend->{already_waiting};
+    $cg_backend->wait_for_messages();
+
+    my $result = eval { $future->get };
+
     is_deeply $result, {original_id => "msg_id_123"}, 'Got expected result';
 
     # Timeout request
-    my $err = exception { $cg_backend->request($request)->get };
+    my $err = exception { $cg_backend->request([])->get };
     like $err, qr{^Timeout}, 'Got request time out';
     is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty after fail';
 
     # Redis cmd request
     $redis->mock( _execute => sub { pop->(undef, 'Redis Error', undef) });
-    $err = exception { $cg_backend->request($request)->get };
+    $err = exception { $cg_backend->request([])->get };
     like $err, qr{^Redis Error}, 'Got Redis Error';
     is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty after fail';
 };

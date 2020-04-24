@@ -119,12 +119,14 @@ sub call_rpc {
 
 
 sub request {
-    my ($self, $request) = @_;
+    my ($self, $request_data) = @_;
 
     my $complete_future = $self->loop->new_future;
 
-    my $sent_future = $self->_send_request($request)->then(sub {
-        my ($request, $msg_id) = @_;
+    $self->wait_for_messages();
+
+    my $sent_future = $self->_send_request($request_data)->then(sub {
+        my ($msg_id) = @_;
 
         $self->pending_requests->{$msg_id} = $complete_future;
 
@@ -133,7 +135,6 @@ sub request {
         return Future->done;
     });
 
-    $self->wait_for_messages();
 
     return Future->wait_any(
         $self->loop->timeout_future(after => $self->timeout),
@@ -143,15 +144,15 @@ sub request {
 
 
 sub _send_request {
-    my ($self, $request) = @_;
+    my ($self, $request_data) = @_;
 
     my $f = $self->loop->new_future;
-    $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request->serialize->@*), sub {
+    $self->redis->_execute(xadd => XADD => ('rpc_requests', '*', $request_data->@*), sub {
         my ($redis, $err, $msg_id) = @_;
 
         return $f->fail($err) if $err;
 
-        return $f->done($request, $msg_id);
+        return $f->done($msg_id);
     });
 
     return $f;
