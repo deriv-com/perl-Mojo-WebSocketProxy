@@ -89,6 +89,8 @@ subtest _send_reuqest => sub {
 subtest 'Request to rpc' => sub {
     my $redis = Test::MockObject->new();
     $redis->mock( _execute => sub { pop->(undef, undef, 'msg_id_123') });
+    $redis->mock( subscribe => sub {});
+    $redis->mock( on => sub {});
 
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
         redis => $redis,
@@ -117,6 +119,69 @@ subtest 'Request to rpc' => sub {
     $err = exception { $cg_backend->request([])->get };
     like $err, qr{^Redis Error}, 'Got Redis Error';
     is_deeply $cg_backend->pending_requests, {}, 'Pending requests should be empty after fail';
+};
+
+subtest 'Calling callbacks on success requests' => sub {
+    my $req_id = 'test_id_123';
+    my $redis = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(subscribe => sub {});
+    $redis->mock(on => sub {});
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis => $redis,
+        timeout => 0.001,
+    );
+
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub {1});
+    $c->mock(wsp_error => sub {{}});
+    $c->mock(send => sub {{}});
+
+    my %was_called;
+    my $req_storage = {
+        method => 'ping',
+        stash_params => [],
+        args => {},
+        before_get_rpc_response => [sub { $was_called{before_get}++ }],
+        after_got_rpc_response  => [sub { $was_called{after_get}++ }],
+        rpc_failure_cb          => sub { $was_called{failure_cb}++ },
+        before_call             => [sub { $was_called{before_call}++ }],
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->_on_message(undef, qq[{"original_id": "$req_id", "response": {"success": 1}}]);
+
+    is_deeply \%was_called, {before_get => 1, after_get => 1, before_call => 1}, 'On success request callbacks were called';
+};
+
+subtest 'Calling callbacks on failure' => sub {
+    my $req_id = 'test_id_123';
+    my $redis = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->(undef, 'Redis Error') });
+    $redis->mock(subscribe => sub {});
+    $redis->mock(on => sub {});
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis => $redis,
+    );
+
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub {1});
+    $c->mock(wsp_error => sub {{}});
+    $c->mock(send => sub {{}});
+
+    my %was_called;
+    my $req_storage = {
+        method => 'ping',
+        stash_params => [],
+        args => {},
+        before_get_rpc_response => [sub { $was_called{before_get}++ }],
+        after_got_rpc_response  => [sub { $was_called{after_get}++ }],
+        rpc_failure_cb          => sub { $was_called{failure_cb}++ },
+        before_call             => [sub { $was_called{before_call}++ }],
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    is_deeply \%was_called, {failure_cb => 1, before_call => 1}, 'On failure callbacks were called';
 };
 
 done_testing;

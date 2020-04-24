@@ -10,6 +10,7 @@ use Data::UUID;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Syntax::Keyword::Try;
 use curry::weak;
+use MojoX::JSON::RPC::Client;
 
 use parent qw(Mojo::WebSocketProxy::Backend);
 
@@ -88,8 +89,8 @@ sub call_rpc {
         my $result;
 
         try {
-            $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => decode_json_utf8($message->{response}));
-            foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage) }
+            $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message);
+            foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
             $api_response = $rpc_response_cb->($result->result);
         } catch {
             my $error = $@;
@@ -109,6 +110,7 @@ sub call_rpc {
         } else {
             $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
         }
+        $rpc_failure_cb->($c, undef, $req_storage) if $rpc_failure_cb;
 
         $c->send({json => $api_response}, $req_storage);
     })->retain;
