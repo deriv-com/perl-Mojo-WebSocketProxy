@@ -164,11 +164,6 @@ subtest 'Calling callbacks on failure' => sub {
         redis => $redis,
     );
 
-    my $c = Test::MockObject->new();
-    $c->mock(tx => sub {1});
-    $c->mock(wsp_error => sub {{}});
-    $c->mock(send => sub {{}});
-
     my %was_called;
     my $req_storage = {
         method => 'ping',
@@ -180,8 +175,83 @@ subtest 'Calling callbacks on failure' => sub {
         before_call             => [sub { $was_called{before_call}++ }],
     };
 
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub {1});
+    $c->mock(wsp_error => sub { $was_called{wsp_error}++; return {} });
+    $c->mock(send => sub { $was_called{send}++ });
+
+
     $cg_backend->call_rpc($c, $req_storage);
-    is_deeply \%was_called, {failure_cb => 1, before_call => 1}, 'On failure callbacks were called';
+    is_deeply \%was_called, {failure_cb => 1, before_call => 1, wsp_error => 1, send => 1}, 'On failure callbacks were called';
+};
+
+subtest 'RPC call: request timeout' => sub {
+    my $req_id = 'test_id_123';
+    my $redis = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(subscribe => sub {});
+    $redis->mock(on => sub {});
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis => $redis,
+        timeout => 0.0001,
+    );
+
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub {1});
+    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1,2,3];return \%e });
+
+    my $result;
+    $c->mock(send => sub { $result = $_[1]->{json} });
+
+    my $req_storage = {
+        method => 'ping',
+        stash_params => [],
+        args => {},
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->loop->delay_future(after => 0.001)->get;
+
+    is_deeply
+        $result,
+        {type => 'ping', code=>'RequestTimeout', msg => 'Request is timed out.'},
+        'Got expected websocket response';
+};
+
+subtest 'RPC call: on redis error' => sub {
+    my $req_id = 'test_id_123';
+    my $redis = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->(undef, 'Fail to XADD') });
+    $redis->mock(subscribe => sub {});
+    $redis->mock(on => sub {});
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis => $redis,
+        timeout => 0.0001,
+    );
+
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub {1});
+    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1,2,3];return \%e });
+
+    my $result;
+    $c->mock(send => sub { $result = $_[1]->{json} });
+
+    my $req_storage = {
+        method => 'ping',
+        stash_params => [],
+        args => {},
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->loop->delay_future(after => 0.001)->get;
+
+    is_deeply
+        $result,
+        {type => 'ping', code=>'WrongResponse', msg => 'Sorry, an error occurred while processing your request.'},
+        'Got expected websocket response';
 };
 
 done_testing;
