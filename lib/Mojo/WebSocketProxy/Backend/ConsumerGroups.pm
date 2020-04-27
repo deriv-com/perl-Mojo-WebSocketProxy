@@ -176,7 +176,9 @@ sub wait_for_messages {
 sub _on_message {
     my ($self, $redis, $raw_message) = @_;
 
-    my $message = decode_json_utf8($raw_message);
+    my $message = eval{ decode_json_utf8($raw_message) };
+
+    return unless ref $message eq 'HASH' && $message->{original_id};
 
     my $completion_future = delete $self->pending_requests->{$message->{original_id}};
 
