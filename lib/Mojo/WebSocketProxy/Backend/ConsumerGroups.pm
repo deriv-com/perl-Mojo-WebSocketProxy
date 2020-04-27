@@ -105,6 +105,8 @@ sub call_rpc {
         my $error = shift;
         my $api_response;
 
+        return Future->done unless $c && $c->tx;
+
         if ($error eq 'Timeout') {
             $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
         } else {
