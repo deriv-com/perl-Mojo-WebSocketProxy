@@ -200,7 +200,7 @@ subtest 'RPC call: request timeout' => sub {
     #Controller Mock
     my $c = Test::MockObject->new();
     $c->mock(tx => sub {1});
-    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1,2,3];return \%e });
+    $c->mock(wsp_error => sub { {msg_type => $_[1], error =>{code => $_[2], message=> $_[3], $_[4]?(details=>$_[4]):()}} });
 
     my $result;
     $c->mock(send => sub { $result = $_[1]->{json} });
@@ -216,7 +216,7 @@ subtest 'RPC call: request timeout' => sub {
 
     is_deeply
         $result,
-        {type => 'ping', code=>'RequestTimeout', msg => 'Request is timed out.'},
+        {msg_type => 'ping', error => {code=>'RequestTimeout', message => 'Request is timed out.'}},
         'Got expected websocket response';
 };
 
@@ -234,7 +234,7 @@ subtest 'RPC call: on redis error' => sub {
     #Controller Mock
     my $c = Test::MockObject->new();
     $c->mock(tx => sub {1});
-    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1,2,3];return \%e });
+    $c->mock(wsp_error => sub { {msg_type => $_[1], error =>{code => $_[2], message=> $_[3], $_[4]?(details=>$_[4]):()}} });
 
     my $result;
     $c->mock(send => sub { $result = $_[1]->{json} });
@@ -249,7 +249,7 @@ subtest 'RPC call: on redis error' => sub {
 
     is_deeply
         $result,
-        {type => 'ping', code=>'WrongResponse', msg => 'Sorry, an error occurred while processing your request.'},
+        {msg_type => 'ping', error => {code=>'WrongResponse', message => 'Sorry, an error occurred while processing your request.'}},
         'Got expected websocket response';
 };
 
@@ -301,7 +301,7 @@ subtest 'RPC call: no success response without active connection' => sub {
     #Controller Mock
     my $c = Test::MockObject->new();
     $c->mock(tx => sub { undef });
-    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1,2,3];return \%e });
+    $c->mock(wsp_error => sub { {msg_type => $_[1], error =>{code => $_[2], message=> $_[3], $_[4]?(details=>$_[4]):()}} });
 
     my $result;
     $c->mock(send => sub { $result = $_[1]->{json} });
@@ -352,6 +352,39 @@ subtest 'RPC call: success response' => sub {
     is_deeply
         $result,
         {ping => {success => 1}, msg_type => 'ping'},
+        'Got no websocket response';
+};
+
+subtest 'RPC call: handling error response from rpc server' => sub {
+    my $req_id = 'test_id_123';
+    my $redis = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(subscribe => sub {});
+    $redis->mock(on => sub {});
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis => $redis,
+        timeout => 0.0001,
+    );
+
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub { 1 });
+    $c->mock(wsp_error => sub { {msg_type => $_[1], error =>{code => $_[2], message=> $_[3], $_[4]?(details=>$_[4]):()}} });
+
+    my $result;
+    $c->mock(send => sub { $result = $_[1]->{json} });
+
+    my $req_storage = {
+        method => 'ping',
+        stash_params => [],
+        args => {},
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->_on_message(undef, qq[{"original_id": "$req_id", "result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}]);
+    is_deeply
+        $result,
+        {msg_type => 'ping', error => {code => 'TestError', message =>'Error message', details=>{field =>'test_field'}}},
         'Got no websocket response';
 };
 
