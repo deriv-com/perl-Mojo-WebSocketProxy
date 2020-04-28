@@ -161,12 +161,11 @@ B<Note:> if C<< rpc_response_callback >> is supplied the success and error callb
 =item * C<before_get_rpc_response>  array ref of subroutines to be run before the remote response is received, with args: C<< $c >> and C<< req_storage >>
 
 =item * C<after_get_rpc_response> arrayref of subroutines to be run after the remote response is received; called with args: C<< $c >> and C<< req_storage >>
-called only when there is an actual response from the remote call .  IE if there is communication  error with the call it will
-not be called versus an error message being returned from the call when it will
+called only when there is an response from the remote call.
 
 =item * C<before_call> arrayref of subroutines called before the request to the remote service is made.
 
-=item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails at a http level. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
+=item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
 =back
 
