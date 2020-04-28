@@ -143,7 +143,7 @@ It takes the following arguments
 
 =item * C<$c>  : L<Mojolicious::Controller>
 
-=item * C<$req_storage> A hashref of attributes stored with the request.  This routine uses some of the, following named arguments:
+=item * C<$req_storage> A hashref of attributes stored with the request.  This routine uses some of the following named arguments:
 
 =over 4
 
