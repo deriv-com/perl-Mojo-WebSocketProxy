@@ -166,7 +166,7 @@ not be called versus an error message being returned from the call when it will
 
 =item * C<before_call> arrayref of subroutines called before the request to the remote service is made.
 
-=item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails at a http level. Called with C<< Mojolicious::Controller >> the rpc_response and C<< $req_storage >>
+=item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails at a http level. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
 =back
 
