@@ -155,7 +155,7 @@ It takes the following arguments
 added as an C<args> key and be merged with C<< $req_storage->{stash_params} >> with stash_params overwriting any matching 
 keys in C<call_params>. 
 
-=item * C<rpc_response_callback>  If supplied this will be run with C<< Mojolicious::Controller >> instance the rpc_response and C<< $req_storage >>.
+=item * C<rpc_response_callback>  If supplied this will be run with args: C<< Mojolicious::Controller >> instance, the rpc_response and C<< $req_storage >>.
 B<Note:> if C<< rpc_response_callback >> is supplied the success and error callbacks are not used. 
 
 =item * C<before_get_rpc_response>  array ref of subroutines to run before the remote response, is passed C<< $c >> and C<< req_storage >>
