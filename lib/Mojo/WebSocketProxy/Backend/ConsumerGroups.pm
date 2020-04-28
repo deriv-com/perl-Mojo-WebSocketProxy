@@ -49,7 +49,7 @@ Creates object instance of the class
 
 =item * C<redis_uri> - URI for Redis connection. Ignored if the C<redis> argument is also given.
 
-=item * C<redis> - redis client, interface of this client should be compatible with L<Mojo::Redis2>. if this argument passed C<redis_uri> will be ignored.
+=item * C<redis> - Redis client object (must be compatible with L<Mojo::Redis2>). This argument will override the C<redis_uri> argument.
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
