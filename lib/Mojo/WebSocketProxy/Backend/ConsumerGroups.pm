@@ -25,7 +25,7 @@ use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 300;
 
 =head1 NAME
 
-Mojo::WebSocketProxy::Backend::ConsumrGroup
+Mojo::WebSocketProxy::Backend::ConsumerGroup
 
 =head1 DESCRIPTION
 
