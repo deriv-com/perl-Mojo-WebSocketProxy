@@ -51,7 +51,7 @@ Creates object instance of the class
 
 =item * C<redis> - redis client, interface of this client should be compatible with L<Mojo::Redis2>. if this argument passed C<redis_uri> will be ignored.
 
-=item * C<timeout> - Request timeout, by default will be used a value from enviroment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>. if this env variable isn't setted will be used 300 sec as a defaul value.
+=item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
 =back
 
