@@ -149,7 +149,7 @@ It takes the following arguments
 
 =item * C<method> The name of the method at the remote end.
 
-=item * C<msg_type> a name for this method if not supplied C<method> is used.
+=item * C<msg_type> a name for this method; if not supplied C<method> is used.
 
 =item * C<call_params> a hashref of arguments on top of C<req_storage> to send to remote method. This will be suplemented with C<< $req_storage->{args} >>
 added as an C<args> key and be merged with C<< $req_storage->{stash_params} >> with stash_params overwriting any matching 
