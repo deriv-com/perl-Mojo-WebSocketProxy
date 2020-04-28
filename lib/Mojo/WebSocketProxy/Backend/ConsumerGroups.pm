@@ -240,7 +240,7 @@ Sends request to backend service. The method accepts single unnamed argument:
 
 =over 4
 
-=item * C<request_data> - should be C<arrayref>  wich should contain data for item which will be putted to redis stream.
+=item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
 
 =back
 
