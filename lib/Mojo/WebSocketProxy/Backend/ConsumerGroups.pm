@@ -116,7 +116,7 @@ sub timeout {
 
 =head2 whoami
 
-Return uniq id of redis whick will be used by backend server to send repsonse.
+Return unique ID of Redis which will be used by backend server to send response.
 Id is persistent for the object.
 
 =cut
