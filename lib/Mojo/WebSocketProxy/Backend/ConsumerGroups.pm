@@ -25,7 +25,7 @@ use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 300;
 
 =head1 NAME
 
-Mojo::WebSocketProxy::Backend::ConsumrGroup
+Mojo::WebSocketProxy::Backend::ConsumerGroup
 
 =head1 DESCRIPTION
 
@@ -47,11 +47,11 @@ Creates object instance of the class
 
 =over 4
 
-=item * C<redis_uri> - uri for redis connection
+=item * C<redis_uri> - URI for Redis connection. Ignored if the C<redis> argument is also given.
 
-=item * C<redis> - redis client, interface of this client should be compatible with L<Mojo::Redis2>. if this argument passed C<redis_uri> will be ignored.
+=item * C<redis> - Redis client object (must be compatible with L<Mojo::Redis2>). This argument will override the C<redis_uri> argument.
 
-=item * C<timeout> - Request timeout, by default will be used a value from enviroment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>. if this env variable isn't setted will be used 300 sec as a defaul value.
+=item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
 =back
 
@@ -115,7 +115,7 @@ sub timeout {
 
 =head2 whoami
 
-Return uniq id of redis whick will be used by backend server to send repsonse.
+Return unique ID of Redis which will be used by backend server to send response.
 Id is persistent for the object.
 
 =cut
@@ -239,7 +239,7 @@ Sends request to backend service. The method accepts single unnamed argument:
 
 =over 4
 
-=item * C<request_data> - should be C<arrayref>  wich should contain data for item which will be putted to redis stream.
+=item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
 
 =back
 
