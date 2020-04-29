@@ -70,7 +70,6 @@ sub new {
 sub loop {
     my $self = shift;
     return $self->{loop} //= do {
-        require IO::Async::Loop::Mojo;
         local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
         IO::Async::Loop->new;
     };
