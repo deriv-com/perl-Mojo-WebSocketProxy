@@ -68,7 +68,7 @@ subtest whoami => sub {
     isnt $rpc_id1, $rpc_id2, 'Id is uniq';
 };
 
-subtest _send_reuqest => sub {
+subtest _send_request => sub {
     my $redis = Test::MockObject->new();
     $redis->mock(_execute => sub { pop->(undef, 'test error') });
 
