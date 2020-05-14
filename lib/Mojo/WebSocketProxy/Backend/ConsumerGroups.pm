@@ -172,9 +172,6 @@ Returns undef.
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
 
-    # make sure that we are already waiting for messages
-    # calling this sub multiple time is safe, it will be executed once
-
     my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage);
 
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
