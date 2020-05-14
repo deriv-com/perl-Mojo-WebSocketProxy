@@ -293,11 +293,8 @@ sub wait_for_messages {
     my ($self) = @_;
     $self->{already_waiting} //= $self->redis->subscribe(
         [$self->whoami],
-        $self->$curry::weak(
-            sub {
-                my ($self) = @_;
-                $self->redis->on('message', $self->$curry::weak('_on_message'));
-            }));
+        $self->redis->curry::weak::on(message => $self->curry::weak::_on_message),
+    );
 
     return;
 }
