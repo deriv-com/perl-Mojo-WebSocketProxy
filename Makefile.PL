@@ -29,7 +29,8 @@ my %WriteMakefileArgs = (
     "Scalar::Util" => 0,
     "Unicode::Normalize" => "1.25",
     "curry" => "1.001",
-    "indirect" => 0
+    "indirect" => 0,
+    "Mojo::Redis2" => 0
   },
   "TEST_REQUIRES" => {
     "ExtUtils::MakeMaker" => 0,
