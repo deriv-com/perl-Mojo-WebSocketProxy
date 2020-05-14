@@ -77,15 +77,18 @@ subtest _send_request => sub {
 
     like $err, qr{^test error}, 'Got correct error';
 
-    $redis->mock(_execute => sub { pop->(undef, undef, 'msg_id_123') });
+    $redis->mock(_execute => sub { pop->() });
 
-    my $msg_id = eval { $cg_backend->_send_request([])->get };
-    is $msg_id, 'msg_id_123', 'Got correct message id';
+    my $req_future = $cg_backend->_send_request([]);
+
+    eval{ $req_future->get };
+
+    ok $req_future->is_done, 'Request was sent';
 };
 
 subtest 'Request to rpc' => sub {
     my $redis = Test::MockObject->new();
-    $redis->mock(_execute => sub { pop->(undef, undef, 'msg_id_123') });
+    $redis->mock(_execute => sub { pop->(undef, undef, '123') });
     $redis->mock(subscribe => sub { });
     $redis->mock(on        => sub { });
 
@@ -98,13 +101,13 @@ subtest 'Request to rpc' => sub {
     my $future = $cg_backend->request([]);
 
     $redis->mock(subscribe => sub { pop->(); return shift; });
-    $redis->mock(on => sub { pop->($redis, '{"original_id": "msg_id_123"}') });
+    $redis->mock(on => sub { pop->($redis, '{"original_id": "1"}') });
     delete $cg_backend->{already_waiting};
     $cg_backend->wait_for_messages();
 
     my $result = eval { $future->get };
 
-    is_deeply $result, {original_id => "msg_id_123"}, 'Got expected result';
+    is_deeply $result, {original_id => "1"}, 'Got expected result';
 
     # Timeout request
     my $err = exception { $cg_backend->request([])->get };
@@ -119,9 +122,9 @@ subtest 'Request to rpc' => sub {
 };
 
 subtest 'Calling callbacks on success requests' => sub {
-    my $req_id = 'test_id_123';
+    my $req_id = '1';
     my $redis  = Test::MockObject->new();
-    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(_execute => sub { pop->() });
     $redis->mock(subscribe => sub { });
     $redis->mock(on        => sub { });
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
@@ -339,9 +342,9 @@ subtest 'RPC call: no success response without active connection' => sub {
 };
 
 subtest 'RPC call: success response' => sub {
-    my $req_id = 'test_id_123';
+    my $req_id = '1';
     my $redis  = Test::MockObject->new();
-    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(_execute => sub { pop->() });
     $redis->mock(subscribe => sub { });
     $redis->mock(on        => sub { });
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
@@ -375,9 +378,9 @@ subtest 'RPC call: success response' => sub {
 };
 
 subtest 'RPC call: handling error response from rpc server' => sub {
-    my $req_id = 'test_id_123';
+    my $req_id = '1';
     my $redis  = Test::MockObject->new();
-    $redis->mock(_execute => sub { pop->(undef, undef, $req_id) });
+    $redis->mock(_execute => sub { pop->() });
     $redis->mock(subscribe => sub { });
     $redis->mock(on        => sub { });
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(

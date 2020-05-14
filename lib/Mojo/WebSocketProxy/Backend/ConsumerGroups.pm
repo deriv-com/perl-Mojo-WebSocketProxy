@@ -89,7 +89,7 @@ Stucture of the hash should be like:
 =cut
 
 sub pending_requests {
-    shift->{pending_requests} //= {};
+    return shift->{pending_requests} //= {};
 }
 
 =head2 redis
@@ -126,6 +126,7 @@ sub whoami {
 
     return $self->{whoami};
 }
+
 
 =head2 call_rpc
 
@@ -250,18 +251,24 @@ sub request {
 
     $self->wait_for_messages();
 
-    my $sent_future = $self->_send_request($request_data)->then(
-        sub {
-            my ($msg_id) = @_;
+    my $msg_id = $self->_next_request_id;
 
-            $self->pending_requests->{$msg_id} = $complete_future;
+    $self->pending_requests->{$msg_id} = $complete_future;
+    $complete_future->on_cancel(sub { delete $self->pending_requests->{$msg_id} });
 
-            $complete_future->on_cancel(sub { delete $self->pending_requests->{$msg_id} });
-
-            return Future->done;
-        });
+    my $sent_future = $self->_send_request($request_data);
 
     return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future),);
+}
+
+# We need to provide uniqness only inside singe instance of Mojo::WebSocketProxy::Backend::ConsumerGroups
+# uniqnes of whoami will guarante us that we will get only our responses.
+sub _next_request_id {
+    my ($self) = @_;
+
+    $self->{request_seq_id} //= 0;
+
+    return ++$self->{request_seq_id};
 }
 
 sub _send_request {
@@ -271,11 +278,11 @@ sub _send_request {
     $self->redis->_execute(
         xadd => XADD => ('rpc_requests', '*', $request_data->@*),
         sub {
-            my ($redis, $err, $msg_id) = @_;
+            my ($redis, $err) = @_;
 
             return $f->fail($err) if $err;
 
-            return $f->done($msg_id);
+            return $f->done();
         });
 
     return $f;
