@@ -291,10 +291,7 @@ Subscription will be done only once within first request to backend server.
 
 sub wait_for_messages {
     my ($self) = @_;
-    $self->{already_waiting} //= $self->redis->subscribe(
-        [$self->whoami],
-        $self->redis->curry::weak::on(message => $self->curry::weak::_on_message),
-    );
+    $self->{already_waiting} //= $self->redis->subscribe([$self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
 
     return;
 }
