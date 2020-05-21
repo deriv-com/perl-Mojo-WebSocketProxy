@@ -332,11 +332,11 @@ sub _prepare_request_data {
 
     return $msg_type,
         [
-        rpc     => $method,
-        args    => encode_json_utf8($params),
-        stash   => encode_json_utf8($stash_params),
-        who     => $self->whoami,
-        timeout => time + RESPONSE_TIMEOUT,
+        rpc      => $method,
+        args     => encode_json_utf8($params),
+        stash    => encode_json_utf8($stash_params),
+        who      => $self->whoami,
+        deadline => time + RESPONSE_TIMEOUT,
         ];
 }
 
