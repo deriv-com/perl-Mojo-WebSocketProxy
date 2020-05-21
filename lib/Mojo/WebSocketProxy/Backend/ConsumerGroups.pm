@@ -3,6 +3,7 @@ package Mojo::WebSocketProxy::Backend::ConsumerGroups;
 use strict;
 use warnings;
 
+use Log::Any qw($log);
 use Math::Random::Secure;
 use Mojo::Redis2;
 use IO::Async::Loop::Mojo;
@@ -308,7 +309,10 @@ sub _on_message {
 
     my $message = eval { decode_json_utf8($raw_message) };
 
-    return unless ref $message eq 'HASH' && $message->{original_id};
+    unless(ref $message eq 'HASH' && $message->{original_id}) {
+        $log->errorf('Fail to proccess response: %s', $raw_message);
+        return;
+    }
 
     my $completion_future = delete $self->pending_requests->{$message->{original_id}};
 
