@@ -11,7 +11,7 @@ subtest 'Subscribe for new messaging' => sub {
     my $was_subscribed  = 0;
     my $callback_setted = 0;
     $redis->mock(subscribe => sub { $was_subscribed++; pop->(); return shift; });
-    $redis->mock(on => sub { $callback_setted++; pop->($redis, '{"original_id": "msg_id_123"}') });
+    $redis->mock(on => sub { $callback_setted++; pop->($redis, '{"message_id": "msg_id_123"}') });
 
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(redis => $redis);
 
@@ -28,7 +28,7 @@ subtest 'Response handling' => sub {
     my $redis      = Test::MockObject->new();
     my $cb_counter = 0;
     $redis->mock(subscribe => sub { pop->(); return shift; });
-    $redis->mock(on => sub { $cb_counter++; pop->($redis, '{"original_id": "msg_id_123"}') });
+    $redis->mock(on => sub { $cb_counter++; pop->($redis, '{"message_id": "msg_id_123"}') });
 
     my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(redis => $redis);
     my $f = $cg_backend->pending_requests->{msg_id_123} = $cg_backend->loop->new_future;
@@ -39,7 +39,7 @@ subtest 'Response handling' => sub {
 
     my $resp = Future->wait_any($f, $cg_backend->loop->timeout_future(after => 1))->get;
 
-    is_deeply $resp, {original_id => 'msg_id_123'}, 'Got rpc result';
+    is_deeply $resp, {message_id => 'msg_id_123'}, 'Got rpc result';
     is_deeply $cg_backend->pending_requests, {}, 'Message was deleted from pending requests';
 
     #Triggering without pending messages;
@@ -101,13 +101,13 @@ subtest 'Request to rpc' => sub {
     my $future = $cg_backend->request([]);
 
     $redis->mock(subscribe => sub { pop->(); return shift; });
-    $redis->mock(on => sub { pop->($redis, '{"original_id": "1"}') });
+    $redis->mock(on => sub { pop->($redis, '{"message_id": "1"}') });
     delete $cg_backend->{already_waiting};
     $cg_backend->wait_for_messages();
 
     my $result = eval { $future->get };
 
-    is_deeply $result, {original_id => "1"}, 'Got expected result';
+    is_deeply $result, {message_id => "1"}, 'Got expected result';
 
     # Timeout request
     my $err = exception { $cg_backend->request([])->get };
@@ -149,7 +149,7 @@ subtest 'Calling callbacks on success requests' => sub {
     };
 
     $cg_backend->call_rpc($c, $req_storage);
-    $cg_backend->_on_message(undef, qq[{"original_id": "$req_id", "result": {"success": 1}}]);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "result": {"success": 1}}]);
 
     is_deeply \%was_called,
         {
@@ -334,7 +334,7 @@ subtest 'RPC call: no success response without active connection' => sub {
     };
 
     $cg_backend->call_rpc($c, $req_storage);
-    $cg_backend->_on_message(undef, qq[{"original_id": "$req_id", "result": {"success": 1}}]);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "result": {"success": 1}}]);
 
     is_deeply $result,
         undef,
@@ -367,7 +367,7 @@ subtest 'RPC call: success response' => sub {
     };
 
     $cg_backend->call_rpc($c, $req_storage);
-    $cg_backend->_on_message(undef, qq[{"original_id": "$req_id", "result": {"success": 1}}]);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "result": {"success": 1}}]);
 
     is_deeply $result,
         {
@@ -404,7 +404,7 @@ subtest 'RPC call: handling error response from rpc server' => sub {
 
     $cg_backend->call_rpc($c, $req_storage);
     $cg_backend->_on_message(undef,
-        qq[{"original_id": "$req_id", "result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}]
+        qq[{"message_id": "$req_id", "result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}]
     );
     is_deeply $result,
         {

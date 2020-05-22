@@ -309,12 +309,12 @@ sub _on_message {
 
     my $message = eval { decode_json_utf8($raw_message) };
 
-    unless(ref $message eq 'HASH' && $message->{original_id}) {
+    unless(ref $message eq 'HASH' && $message->{message_id}) {
         $log->errorf('Fail to proccess response: %s', $raw_message);
         return;
     }
 
-    my $completion_future = delete $self->pending_requests->{$message->{original_id}};
+    my $completion_future = delete $self->pending_requests->{$message->{message_id}};
 
     return unless $completion_future;
 
