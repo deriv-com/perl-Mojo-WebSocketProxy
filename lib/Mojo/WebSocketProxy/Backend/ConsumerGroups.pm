@@ -257,6 +257,8 @@ sub request {
     $self->pending_requests->{$msg_id} = $complete_future;
     $complete_future->on_cancel(sub { delete $self->pending_requests->{$msg_id} });
 
+    push @$request_data, ('message_id' => $msg_id);
+
     my $sent_future = $self->_send_request($request_data);
 
     return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future),);
@@ -309,7 +311,7 @@ sub _on_message {
 
     my $message = eval { decode_json_utf8($raw_message) };
 
-    unless(ref $message eq 'HASH' && $message->{message_id}) {
+    if(ref $message ne ref {} && !$message->{message_id}) {
         $log->errorf('Fail to proccess response: %s', $raw_message);
         return;
     }
@@ -338,9 +340,9 @@ sub _prepare_request_data {
         [
         rpc      => $method,
         args     => encode_json_utf8($params),
-        stash    => encode_json_utf8($stash_params),
         who      => $self->whoami,
         deadline => time + RESPONSE_TIMEOUT,
+        $stash_params ? (stash    => encode_json_utf8($stash_params)) : ()
         ];
 }
 
