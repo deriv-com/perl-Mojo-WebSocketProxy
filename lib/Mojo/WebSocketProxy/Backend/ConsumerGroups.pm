@@ -279,7 +279,7 @@ sub _send_request {
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => ('rpc_requests', '*', $request_data->@*),
+        xadd => XADD => ('general', '*', $request_data->@*),
         sub {
             my ($redis, $err) = @_;
 
