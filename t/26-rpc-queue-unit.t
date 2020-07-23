@@ -365,7 +365,7 @@ subtest 'RPC call: success response' => sub {
     };
 
     $cg_backend->call_rpc($c, $req_storage);
-    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "result": {"success": 1}}]);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
 
     is_deeply $result,
         {
@@ -402,7 +402,7 @@ subtest 'RPC call: handling error response from rpc server' => sub {
 
     $cg_backend->call_rpc($c, $req_storage);
     $cg_backend->_on_message(undef,
-        qq[{"message_id": "$req_id", "result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}]
+        qq[{"message_id": "$req_id", "response": {"result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}}]
     );
     is_deeply $result,
         {

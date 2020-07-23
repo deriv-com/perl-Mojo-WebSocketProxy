@@ -195,7 +195,7 @@ sub call_rpc {
             my $result;
 
             try {
-                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message);
+                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message->{response});
                 foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
                 $api_response = $rpc_response_cb->($result->result);
             }
@@ -309,10 +309,19 @@ sub wait_for_messages {
 sub _on_message {
     my ($self, $redis, $raw_message) = @_;
 
-    my $message = eval { decode_json_utf8($raw_message) };
+    my $message = {};
 
-    if(ref $message ne ref {} && !$message->{message_id}) {
-        $log->errorf('Fail to proccess response: %s', $raw_message);
+    try{
+        $message = decode_json_utf8($raw_message);
+    }catch {
+        my $err = $@;
+
+        $log->errorf('An error occurred while decoding published response by Consumer (Transport::Redis):', $err);
+        return;
+    }
+
+    if(!$message->{message_id}) {
+        $log->errorf('Failed to proccess response: message_id not exists at <%s>', $raw_message);
         return;
     }
 
@@ -336,14 +345,16 @@ sub _prepare_request_data {
     my $params = $self->make_call_params($c, $req_storage);
     my $stash_params = $req_storage->{stash_params};
 
-    return $msg_type,
-        [
+    my $request_data = [
         rpc      => $method,
-        args     => encode_json_utf8($params),
         who      => $self->whoami,
         deadline => time + RESPONSE_TIMEOUT,
-        $stash_params ? (stash    => encode_json_utf8($stash_params)) : ()
-        ];
+
+        $params  ?  (args   => encode_json_utf8 $params)        : (),
+        $stash_params   ?  (stash  => encode_json_utf8 $stash_params)  : (),
+    ];
+
+    return $msg_type, $request_data;
 }
 
 1;
