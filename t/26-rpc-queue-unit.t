@@ -38,6 +38,7 @@ subtest 'Response handling' => sub {
     ok $f->is_done, 'Request marked as ready';
 
     my $resp = Future->wait_any($f, $cg_backend->loop->timeout_future(after => 1))->get;
+    is_deeply $resp, {message_id => 'msg_id_123'}, 'Got rpc result';
     is_deeply $cg_backend->pending_requests, {}, 'Message was deleted from pending requests';
 
     #Triggering without pending messages;
