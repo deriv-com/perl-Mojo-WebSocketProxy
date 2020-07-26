@@ -99,7 +99,10 @@ sub pending_requests {
 
 sub redis {
     my $self = shift;
-    return $self->{redis} //= Mojo::Redis2->new(url => $self->{redis_uri});
+    return $self->{redis} //= Mojo::Redis2->new(
+        url             => $self->{redis_uri},
+        encoding        => undef,
+    );
 }
 
 =head2 timeout
