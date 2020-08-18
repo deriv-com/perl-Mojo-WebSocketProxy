@@ -319,11 +319,11 @@ sub _on_message {
     }catch {
         my $err = $@;
 
-        $log->errorf('An error occurred while decoding published response by Consumer (Transport::Redis):', $err);
+        $log->errorf('An error occurred while decoding published response from worker:', $err);
         return;
     }
 
-    if(!$message->{message_id}) {
+    if(ref $mesage ne 'HASH' || !$message->{message_id}) {
         $log->errorf('Failed to proccess response: message_id not exists at <%s>', $raw_message);
         return;
     }
