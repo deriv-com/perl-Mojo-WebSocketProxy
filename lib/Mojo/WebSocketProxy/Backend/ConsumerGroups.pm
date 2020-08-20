@@ -324,7 +324,7 @@ sub _on_message {
     }
 
     if(ref $message ne 'HASH' || !$message->{message_id}) {
-        $log->errorf('Failed to proccess response: message_id not exists at <%s>', $raw_message);
+        $log->errorf('Failed to process response: message_id does not exist at <%s>', $raw_message);
         return;
     }
 
