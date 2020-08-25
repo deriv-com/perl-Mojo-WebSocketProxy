@@ -314,9 +314,9 @@ sub _on_message {
 
     my $message = {};
 
-    try{
+    try {
         $message = decode_json_utf8($raw_message);
-    }catch {
+    } catch {
         my $err = $@;
 
         $log->errorf('An error occurred while decoding published response from worker:', $err);
@@ -353,8 +353,8 @@ sub _prepare_request_data {
         who      => $self->whoami,
         deadline => time + RESPONSE_TIMEOUT,
 
-        $params  ?  (args   => encode_json_utf8 $params)        : (),
-        $stash_params   ?  (stash  => encode_json_utf8 $stash_params)  : (),
+        $params  ?  (args   => encode_json_utf8($params))        : (),
+        $stash_params   ?  (stash  => encode_json_utf8($stash_params))  : (),
     ];
 
     return $msg_type, $request_data;
