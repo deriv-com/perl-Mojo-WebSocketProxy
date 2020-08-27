@@ -319,7 +319,7 @@ sub _on_message {
     } catch {
         my $err = $@;
 
-        $log->errorf('An error occurred while decoding published response from worker:', $err);
+        $log->errorf('An error occurred while decoding published response from worker: %s', $err);
         return;
     }
 
