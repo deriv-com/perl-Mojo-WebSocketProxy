@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Log::Any qw($log);
-use Math::Random::Secure;
 use Mojo::Redis2;
 use IO::Async::Loop::Mojo;
 use Data::UUID;
@@ -122,10 +121,8 @@ Id is persistent for the object.
 
 sub whoami {
     my $self = shift;
-
     return $self->{whoami} if $self->{whoami};
 
-    Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
     $self->{whoami} = Data::UUID->new->create_str();
 
     return $self->{whoami};
@@ -267,8 +264,8 @@ sub request {
     return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future),);
 }
 
-# We need to provide uniqness only inside singe instance of Mojo::WebSocketProxy::Backend::ConsumerGroups
-# uniqnes of whoami will guarante us that we will get only our responses.
+# We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
+# Also, the uniqueness of `whoami` will guarantee us that we'll get requests' expected response.
 sub _next_request_id {
     my ($self) = @_;
 
@@ -282,7 +279,12 @@ sub _send_request {
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => ('general', '*', $request_data->@*),
+        xadd => XADD => (
+            'general',
+            ('MAXLEN', '~', '100000'),
+            '*',
+            $request_data->@*
+        ),
         sub {
             my ($redis, $err) = @_;
 
