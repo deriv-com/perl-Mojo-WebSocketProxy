@@ -30,7 +30,7 @@ sub register {
         });
     $app->helper(
         wsp_error => sub {
-            shift;  # $c
+            shift; # $c
             my ($msg_type, $code, $message, $details) = @_;
 
             my $error = {
