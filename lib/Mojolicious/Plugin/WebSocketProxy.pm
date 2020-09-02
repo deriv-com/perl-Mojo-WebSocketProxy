@@ -13,7 +13,7 @@ use Log::Any qw($log);
 # Other backend types may be available; we default to 'jsonrpc' in the code below
 use Mojo::WebSocketProxy::Backend::JSONRPC;
 
-our $VERSION = '0.13';    ## VERSION
+## VERSION
 
 sub register {
     my ($self, $app, $config) = @_;
@@ -30,7 +30,7 @@ sub register {
         });
     $app->helper(
         wsp_error => sub {
-            shift;    # $c
+            shift;  # $c
             my ($msg_type, $code, $message, $details) = @_;
 
             my $error = {
