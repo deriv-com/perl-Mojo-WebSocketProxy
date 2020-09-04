@@ -184,6 +184,8 @@ sub call_rpc {
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
+    my $block_response = delete($req_storage->{block_response});
+
     $self->request($request_data)->then(
         sub {
             my ($message) = @_;
@@ -205,6 +207,8 @@ sub call_rpc {
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             };
 
+            return Future->done  if $block_response || !$api_response;
+
             $c->send({json => $api_response}, $req_storage);
 
             return Future->done;
@@ -222,6 +226,8 @@ sub call_rpc {
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
             $rpc_failure_cb->($c, undef, $req_storage) if $rpc_failure_cb;
+
+            return Future->done  if $block_response || !$api_response;
 
             $c->send({json => $api_response}, $req_storage);
         })->retain;
