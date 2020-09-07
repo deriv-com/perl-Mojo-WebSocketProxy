@@ -201,7 +201,9 @@ sub call_rpc {
             }
             catch {
                 my $error = $@;
-                $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
+                $rpc_failure_cb->($c, $result, $req_storage, {
+                        type => 'WrongResponse',
+                    }) if $rpc_failure_cb;
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             };
 
@@ -216,12 +218,15 @@ sub call_rpc {
 
             return Future->done unless $c && $c->tx;
 
+            my $err_type;
             if ($error eq 'Timeout') {
-                $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
+                $api_response = $c->wsp_error($msg_type, $err_type = 'RequestTimeout', 'Request is timed out.');
             } else {
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                $api_response = $c->wsp_error($msg_type, $err_type = 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
-            $rpc_failure_cb->($c, undef, $req_storage) if $rpc_failure_cb;
+            $rpc_failure_cb->($c, undef, $req_storage, {
+                    type => $err_type,
+                }) if $rpc_failure_cb;
 
             $c->send({json => $api_response}, $req_storage);
         })->retain;
