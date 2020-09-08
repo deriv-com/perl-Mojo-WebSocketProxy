@@ -38,7 +38,7 @@ sub register {
                 message => $message
             };
             $error->{details} = $details if ref($details) eq 'HASH' && keys %$details;
-            
+
             if ($details && ref($details) ne 'HASH') {
                 $log->debugf("Details in a websocket error must be a hash reference instead of a %s", ref($details));
             }
@@ -67,20 +67,23 @@ sub register {
         die 'No actions found!';
     }
 
-    # For backwards compatibility, we always want to add a plain JSON::RPC backend
-    $dispatcher_config->add_backend(default => Mojo::WebSocketProxy::Backend->backend_instance(
-        jsonrpc => url => delete $config->{url},
-    )) unless exists $config->{backends}{default};
-
-    if(my $backend_configs = delete $config->{backends}) {
+    my $default_backend = delete $config->{default_backend};
+    if (my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
             my %args = %{$backend_configs->{$name}};
             my $type = delete($args{type}) // 'jsonrpc';
-            $dispatcher_config->add_backend($name => Mojo::WebSocketProxy::Backend->backend_instance(
-                $type => %args
-            ));
+            my $key = $default_backend eq $name ? 'default' : $name;
+            $dispatcher_config->add_backend($key => Mojo::WebSocketProxy::Backend->backend_instance($type => %args));
         }
     }
+
+    # For backwards compatibility, we always want to add a plain JSON::RPC backend
+    my $jsonrpc_backend_key = exists $dispatcher_config->{backends}->{default} ? 'http' : 'default';
+    $dispatcher_config->add_backend(
+        $jsonrpc_backend_key => Mojo::WebSocketProxy::Backend->backend_instance(
+            jsonrpc => url => delete $config->{url},
+        )
+    );
 
     $app->helper(
         wsp_config => sub {
