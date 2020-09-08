@@ -193,24 +193,27 @@ sub call_rpc {
             foreach my $hook ($before_get_rpc_response_hooks->@*) { $hook->($c, $req_storage) }
 
             return Future->done unless $c && $c->tx;
+
+            my $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message->{response});
+
+            foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
+
             my $api_response;
-            my $result;
-
-            try {
-                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message->{response});
-                foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
-                $api_response = $rpc_response_cb->($result->result);
-            }
-            catch {
-                my $error = $@;
+            if ($result->is_error){
                 $rpc_failure_cb->($c, $result, $req_storage, {
-                        type => 'WrongResponse',
-                    }) if $rpc_failure_cb;
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-            };
+                    code    => $result->error_code,
+                    message => $result->error_message,
+                    type    => 'CallError',
+                }) if $rpc_failure_cb;
 
-            return Future->done  if $block_response || !$api_response;
+                return Future->done if $block_response;
+                $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
+                $c->send({json => $api_response}, $req_storage);
+                return Future->done;
+            }
 
+            $api_response = $rpc_response_cb->($result->result);
+            return Future->done if $block_response || !$api_response;
             $c->send({json => $api_response}, $req_storage);
 
             return Future->done;
@@ -226,10 +229,14 @@ sub call_rpc {
             if ($error eq 'Timeout') {
                 $api_response = $c->wsp_error($msg_type, $err_type = 'RequestTimeout', 'Request is timed out.');
             } else {
-                $api_response = $c->wsp_error($msg_type, $err_type = 'WrongResponse', 'Sorry, an error occurred while processing your request.');
+                $err_type = "RedisError";
+                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
+
             $rpc_failure_cb->($c, undef, $req_storage, {
-                    type => $err_type,
+                    code    => $err_type,
+                    message => $error,
+                    type    => $err_type,
                 }) if $rpc_failure_cb;
 
             return Future->done  if $block_response || !$api_response;
@@ -272,7 +279,7 @@ sub request {
 
     my $sent_future = $self->_send_request($request_data);
 
-    return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future),);
+    return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future));
 }
 
 # We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
@@ -336,8 +343,13 @@ sub _on_message {
         return;
     }
 
-    if(ref $message ne 'HASH' || !$message->{message_id}) {
-        $log->errorf('Failed to process response: message_id does not exist, original message content was %s', $raw_message);
+    my $missed_param;
+    if(
+        ref $message ne 'HASH' 
+        || !$message->{$missed_param = "message_id"} 
+        || !$message->{$missed_param = "response"}
+    ) {
+        $log->errorf("Failed to process response: '%s' does not exist, original message content was %s", $missed_param, $raw_message);
         return;
     }
 
