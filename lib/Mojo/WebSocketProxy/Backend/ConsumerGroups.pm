@@ -4,7 +4,6 @@ use strict;
 use warnings;
 
 use Log::Any qw($log);
-use Math::Random::Secure;
 use Mojo::Redis2;
 use IO::Async::Loop::Mojo;
 use Data::UUID;
@@ -99,7 +98,10 @@ sub pending_requests {
 
 sub redis {
     my $self = shift;
-    return $self->{redis} //= Mojo::Redis2->new(url => $self->{redis_uri});
+    return $self->{redis} //= Mojo::Redis2->new(
+        url             => $self->{redis_uri},
+        encoding        => undef,
+    );
 }
 
 =head2 timeout
@@ -119,10 +121,8 @@ Id is persistent for the object.
 
 sub whoami {
     my $self = shift;
-
     return $self->{whoami} if $self->{whoami};
 
-    Math::Random::Secure::srand() if Math::Random::Secure->can('srand');
     $self->{whoami} = Data::UUID->new->create_str();
 
     return $self->{whoami};
@@ -184,6 +184,8 @@ sub call_rpc {
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
+    my $block_response = delete($req_storage->{block_response});
+
     $self->request($request_data)->then(
         sub {
             my ($message) = @_;
@@ -195,7 +197,7 @@ sub call_rpc {
             my $result;
 
             try {
-                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message);
+                $result = MojoX::JSON::RPC::Client::ReturnObject->new(rpc_response => $message->{response});
                 foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
                 $api_response = $rpc_response_cb->($result->result);
             }
@@ -204,6 +206,8 @@ sub call_rpc {
                 $rpc_failure_cb->($c, $result, $req_storage) if $rpc_failure_cb;
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             };
+
+            return Future->done  if $block_response || !$api_response;
 
             $c->send({json => $api_response}, $req_storage);
 
@@ -222,6 +226,8 @@ sub call_rpc {
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
             }
             $rpc_failure_cb->($c, undef, $req_storage) if $rpc_failure_cb;
+
+            return Future->done  if $block_response || !$api_response;
 
             $c->send({json => $api_response}, $req_storage);
         })->retain;
@@ -257,13 +263,15 @@ sub request {
     $self->pending_requests->{$msg_id} = $complete_future;
     $complete_future->on_cancel(sub { delete $self->pending_requests->{$msg_id} });
 
+    push @$request_data, ('message_id' => $msg_id);
+
     my $sent_future = $self->_send_request($request_data);
 
     return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future),);
 }
 
-# We need to provide uniqness only inside singe instance of Mojo::WebSocketProxy::Backend::ConsumerGroups
-# uniqnes of whoami will guarante us that we will get only our responses.
+# We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
+# Also, the uniqueness of `whoami` will guarantee us that we'll get requests' expected response.
 sub _next_request_id {
     my ($self) = @_;
 
@@ -277,7 +285,12 @@ sub _send_request {
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => ('rpc_requests', '*', $request_data->@*),
+        xadd => XADD => (
+            'general',
+            ('MAXLEN', '~', '100000'),
+            '*',
+            $request_data->@*
+        ),
         sub {
             my ($redis, $err) = @_;
 
@@ -307,10 +320,19 @@ sub wait_for_messages {
 sub _on_message {
     my ($self, $redis, $raw_message) = @_;
 
-    my $message = eval { decode_json_utf8($raw_message) };
+    my $message = {};
 
-    unless(ref $message eq 'HASH' && $message->{message_id}) {
-        $log->errorf('Fail to proccess response: %s', $raw_message);
+    try {
+        $message = decode_json_utf8($raw_message);
+    } catch {
+        my $err = $@;
+
+        $log->errorf('An error occurred while decoding published response from worker: %s', $err);
+        return;
+    }
+
+    if(ref $message ne 'HASH' || !$message->{message_id}) {
+        $log->errorf('Failed to process response: message_id does not exist, original message content was %s', $raw_message);
         return;
     }
 
@@ -334,14 +356,16 @@ sub _prepare_request_data {
     my $params = $self->make_call_params($c, $req_storage);
     my $stash_params = $req_storage->{stash_params};
 
-    return $msg_type,
-        [
+    my $request_data = [
         rpc      => $method,
-        args     => encode_json_utf8($params),
-        stash    => encode_json_utf8($stash_params),
         who      => $self->whoami,
         deadline => time + RESPONSE_TIMEOUT,
-        ];
+
+        $params  ?  (args   => encode_json_utf8($params))        : (),
+        $stash_params   ?  (stash  => encode_json_utf8($stash_params))  : (),
+    ];
+
+    return $msg_type, $request_data;
 }
 
 1;

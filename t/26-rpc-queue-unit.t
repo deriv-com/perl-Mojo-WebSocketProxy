@@ -38,7 +38,6 @@ subtest 'Response handling' => sub {
     ok $f->is_done, 'Request marked as ready';
 
     my $resp = Future->wait_any($f, $cg_backend->loop->timeout_future(after => 1))->get;
-
     is_deeply $resp, {message_id => 'msg_id_123'}, 'Got rpc result';
     is_deeply $cg_backend->pending_requests, {}, 'Message was deleted from pending requests';
 
@@ -367,7 +366,7 @@ subtest 'RPC call: success response' => sub {
     };
 
     $cg_backend->call_rpc($c, $req_storage);
-    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "result": {"success": 1}}]);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
 
     is_deeply $result,
         {
@@ -404,7 +403,7 @@ subtest 'RPC call: handling error response from rpc server' => sub {
 
     $cg_backend->call_rpc($c, $req_storage);
     $cg_backend->_on_message(undef,
-        qq[{"message_id": "$req_id", "result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}]
+        qq[{"message_id": "$req_id", "response": {"result": { "error": { "code": "TestError", "message_to_client": "Error message", "details":{"field":"test_field"}}}}}]
     );
     is_deeply $result,
         {
