@@ -227,7 +227,8 @@ sub call_rpc {
 
             my $err_type;
             if ($error eq 'Timeout') {
-                $api_response = $c->wsp_error($msg_type, $err_type = 'RequestTimeout', 'Request is timed out.');
+                $err_type     = $error;
+                $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
             } else {
                 $err_type = "RedisError";
                 $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
