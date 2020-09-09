@@ -174,8 +174,6 @@ Returns undef.
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
 
-    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage);
-
     my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
     my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
@@ -184,8 +182,8 @@ sub call_rpc {
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
+    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage);
     my $block_response = delete($req_storage->{block_response});
-
     $self->request($request_data)->then(
         sub {
             my ($message) = @_;
