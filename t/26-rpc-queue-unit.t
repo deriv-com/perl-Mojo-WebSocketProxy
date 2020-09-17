@@ -229,8 +229,8 @@ subtest 'RPC call: request timeout' => sub {
         {
         msg_type => 'ping',
         error    => {
-            code    => 'RequestTimeout',
-            message => 'Request is timed out.'
+            code    => 'WrongResponse',
+            message => 'Sorry, an error occurred while processing your request.'
         }
         },
         'Got expected websocket response';

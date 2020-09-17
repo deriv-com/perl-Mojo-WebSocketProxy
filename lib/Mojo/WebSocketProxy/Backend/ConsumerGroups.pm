@@ -20,7 +20,7 @@ no indirect;
 
 __PACKAGE__->register_type('consumer_groups');
 
-use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 300;
+use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
 
 =head1 NAME
 
@@ -223,20 +223,14 @@ sub call_rpc {
 
             return Future->done unless $c && $c->tx;
 
-            my $err_type;
-            if ($error eq 'Timeout') {
-                $err_type     = $error;
-                $api_response = $c->wsp_error($msg_type, 'RequestTimeout', 'Request is timed out.');
-            } else {
-                $err_type = "RedisError";
-                $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
-            }
-
+            my $err_type = $error eq 'Timeout' ? $error : "RedisError";
             $rpc_failure_cb->($c, undef, $req_storage, {
                     code    => $err_type,
                     message => $error,
                     type    => $err_type,
                 }) if $rpc_failure_cb;
+
+            $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
 
             return Future->done  if $block_response || !$api_response;
 

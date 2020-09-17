@@ -67,7 +67,7 @@ sub register {
         die 'No actions found!';
     }
 
-    my $default_backend = delete $config->{default_backend};
+    my $default_backend = delete $config->{default_backend} // '';
     if (my $backend_configs = delete $config->{backends}) {
         foreach my $name (keys %$backend_configs) {
             my %args = %{$backend_configs->{$name}};
