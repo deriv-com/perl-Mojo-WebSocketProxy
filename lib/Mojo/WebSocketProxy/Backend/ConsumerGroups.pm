@@ -20,7 +20,7 @@ no indirect;
 
 __PACKAGE__->register_type('consumer_groups');
 
-use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 300;
+use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
 
 =head1 NAME
 
