@@ -7,6 +7,7 @@ use Log::Any qw($log);
 use Mojo::Redis2;
 use IO::Async::Loop::Mojo;
 use Data::UUID;
+use YAML::XS;
 use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Syntax::Keyword::Try;
 use curry::weak;
@@ -71,6 +72,23 @@ sub loop {
         local $ENV{IO_ASYNC_LOOP} = 'IO::Async::Loop::Mojo';
         IO::Async::Loop->new;
     };
+}
+
+sub category_config {
+    my $self = shift;
+    return $self->{category_config} //= do {
+        my $raw_config = YAML::XS::LoadFile('/etc/rmg/rpc_categories_map.yml');
+        my %processed = ();
+        foreach my $k (keys %$config) {
+            foreach my $m ($config->{$k}->{methods}->@*) {
+                $processed{$m} = {
+                    timeout  => $config->{$k}->{timeout},
+                    category => $k
+                };
+            }
+        }
+        return \%processed;
+    }
 }
 
 =head2 pending_requests
@@ -270,9 +288,10 @@ sub request {
 
     push @$request_data, ('message_id' => $msg_id);
 
-    my $sent_future = $self->_send_request($request_data);
+    my $rpc_category = $self->_get_rpc_category($request_data);
+    my $sent_future = $self->_send_request($request_data, $rpc_category->{category});
 
-    return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future));
+    return Future->wait_any($self->loop->timeout_future(after => $rpc_category->{timeout}), Future->needs_all($complete_future, $sent_future));
 }
 
 # We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
@@ -285,13 +304,24 @@ sub _next_request_id {
     return ++$self->{request_seq_id};
 }
 
-sub _send_request {
+sub _get_rpc_category {
     my ($self, $request_data) = @_;
+
+    my $method = $request_data->{rpc};
+    my $rpc_group = $self->category_config->{$method} // {
+        category => 'general',
+        timeout => $self->timeout
+    };
+    return $rpc_group;
+}
+
+sub _send_request {
+    my ($self, $request_data, $rpc_category) = @_;
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
         xadd => XADD => (
-            'general',
+            $rpc_category,
             ('MAXLEN', '~', '100000'),
             '*',
             $request_data->@*
