@@ -53,6 +53,8 @@ Creates object instance of the class
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
+=item * C<category_map_config> - Category mapper configuration file path.
+
 =back
 
 =cut
@@ -77,15 +79,19 @@ sub loop {
 sub category_config {
     my $self = shift;
     return $self->{category_config} //= do {
-        my $raw_config = YAML::XS::LoadFile('/etc/rmg/rpc_categories_map.yml');
         my %processed = ();
-        foreach my $k (keys %$config) {
-            foreach my $m ($config->{$k}->{methods}->@*) {
-                $processed{$m} = {
-                    timeout  => $config->{$k}->{timeout},
-                    category => $k
-                };
+        try {
+            my $raw_config = YAML::XS::LoadFile($self->category_map_config);
+            foreach my $k (keys %$config) {
+                foreach my $m ($config->{$k}->{methods}->@*) {
+                    $processed{$m} = {
+                        timeout  => $config->{$k}->{timeout},
+                        category => $k
+                    };
+                }
             }
+        } catch($e) {
+            $log->warn($e);
         }
         return \%processed;
     }
