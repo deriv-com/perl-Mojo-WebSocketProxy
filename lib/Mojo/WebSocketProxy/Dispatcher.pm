@@ -19,6 +19,8 @@ use DataDog::DogStatsd::Helper qw(stats_inc);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 
+my $backend = 'default';
+
 ## VERSION
 around 'send' => sub {
     my ($orig, $c, $api_response, $req_storage) = @_;
@@ -58,40 +60,57 @@ sub open_connection {
     my $config = $c->wsp_config->{config};
 
     Mojo::IOLoop->singleton->stream($c->tx->connection)->timeout($config->{stream_timeout}) if $config->{stream_timeout};
-    Mojo::IOLoop->singleton->max_connections($config->{max_connections}) if $config->{max_connections};
+    Mojo::IOLoop->singleton->max_connections($config->{max_connections})                    if $config->{max_connections};
 
     $config->{opened_connection}->($c) if $config->{opened_connection};
 
-    $c->on(text => sub {
-        my ($c, $msg) = @_;
+    $c->on(
+        text => sub {
+            my ($c, $msg) = @_;
 
-        my $original = "$msg";
-        # Incoming data will be JSON-formatted text, as a Unicode string.
-        # We normalize the entire string before decoding.
+            my $original = "$msg";
+            # Incoming data will be JSON-formatted text, as a Unicode string.
+            # We normalize the entire string before decoding.
 
-        my $decoded = eval { Encode::decode_utf8($msg, Encode::FB_CROAK) } or do {
-            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UTF8', reason => 'Malformed UTF-8 data', message => $msg));
-            return;
-        };
+            my $decoded = eval { Encode::decode_utf8($msg, Encode::FB_CROAK) } or do {
+                $c->tx->emit(
+                    encoding_error => _get_error_details(
+                        code    => 'INVALID_UTF8',
+                        reason  => 'Malformed UTF-8 data',
+                        message => $msg
+                    ));
+                return;
+            };
 
-        # The Unicode::Normalize::NFC check is added as a safety net. However, the error is not triggered so far.
-        my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
-            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_UNICODE', reason => 'Malformed Unicode data', message => $msg));
-            return;
-        };
+            # The Unicode::Normalize::NFC check is added as a safety net. However, the error is not triggered so far.
+            my $normalized_msg = eval { Unicode::Normalize::NFC($decoded) } or do {
+                $c->tx->emit(
+                    encoding_error => _get_error_details(
+                        code    => 'INVALID_UNICODE',
+                        reason  => 'Malformed Unicode data',
+                        message => $msg
+                    ));
+                return;
+            };
 
-        my $args = eval { decode_json_text($normalized_msg); } or do {
-            $c->tx->emit(encoding_error => _get_error_details(code => 'INVALID_JSON', reason => 'Malformed JSON data', message => $msg));
-            return;
-        };
+            my $args = eval { decode_json_text($normalized_msg); } or do {
+                $c->tx->emit(
+                    encoding_error => _get_error_details(
+                        code    => 'INVALID_JSON',
+                        reason  => 'Malformed JSON data',
+                        message => $msg
+                    ));
+                return;
+            };
 
-        on_message($c, $args);
-    });
+            on_message($c, $args);
+        });
 
-    $c->on(binary => sub {
-        my ($d, $bytes) = @_;
-        $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
-    });
+    $c->on(
+        binary => sub {
+            my ($d, $bytes) = @_;
+            $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
+        });
 
     $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
 
@@ -122,35 +141,39 @@ sub on_message {
     $req_storage->{method} = $req_storage->{name};
 
     # main processing pipeline
-    my $f = $c->before_forward(
-        $req_storage
-    )->transform(done => sub {
-        # Note that we completely ignore the return value of ->before_forward here.
-        return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
-        return $c->forward($req_storage);
-    })->then(sub {
-        my $result = shift;
-        return $c->after_forward(
-            $result,
-            $req_storage
-        )->transform(done => sub { $result })
-    }, sub {
-        my $result = shift;
-        Future->done($result);
-    });
+    my $f = $c->before_forward($req_storage)->transform(
+        done => sub {
+            # Note that we completely ignore the return value of ->before_forward here.
+            return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
+            return $c->forward($req_storage);
+        }
+    )->then(
+        sub {
+            my $result = shift;
+            return $c->after_forward($result, $req_storage)->transform(done => sub { $result });
+        },
+        sub {
+            my $result = shift;
+            Future->done($result);
+        });
 
     return Future->wait_any(
-        Future::Mojo->new_timeout(TIMEOUT)->else(sub {
-            return Future->done($c->wsp_error('error', Timeout => 'Timeout'))
-        }),
+        Future::Mojo->new_timeout(TIMEOUT)->else(
+            sub {
+                return Future->done($c->wsp_error('error', Timeout => 'Timeout'));
+            }
+        ),
         $f
-    )->then(sub {
-        my ($result) = @_;
-        $c->send({json => $result}, $req_storage) if $result;
-        return $c->_run_hooks($config->{after_dispatch} || []);
-    })->on_fail(sub {
-        $c->app->log->error("An error occurred handling on_message. Error @_");
-    })->retain;
+    )->then(
+        sub {
+            my ($result) = @_;
+            $c->send({json => $result}, $req_storage) if $result;
+            return $c->_run_hooks($config->{after_dispatch} || []);
+        }
+    )->on_fail(
+        sub {
+            $c->app->log->error("An error occurred handling on_message. Error @_");
+        })->retain;
 }
 
 sub before_forward {
@@ -168,6 +191,10 @@ sub before_forward {
     # We always want to clear these after every request.
     delete $req_storage->{before_forward};
 
+    my $backend_name = $req_storage->{backend} // "default";
+    $backend = $c->wsp_config->{backends}->{$backend_name}
+        or die "Cannot dispatch request - no backend named '$backend_name'";
+
     return $c->_run_hooks($before_forward_hooks, $req_storage);
 }
 
@@ -184,11 +211,13 @@ sub _run_hooks {
     my $hooks       = shift @hook_params;
 
     my $result_f = fmap {
-        my $hook = shift;
+        my $hook   = shift;
         my $result = $hook->($c, @hook_params) or return Future->done;
         return $result if blessed($result) && $result->isa('Future');
         return Future->fail($result);
-    } foreach        => [grep { defined } @$hooks], concurrent => 1;
+    }
+    foreach        => [grep { defined } @$hooks],
+        concurrent => 1;
     return $result_f;
 }
 
@@ -221,10 +250,6 @@ sub forward {
     # default to config (generic) only if call specific is not defined
     $req_storage->{rpc_failure_cb} //= $config->{rpc_failure_cb};
 
-    my $backend_name = $req_storage->{backend} // "default";
-    my $backend = $c->wsp_config->{backends}{$backend_name}
-        or die "Cannot dispatch request - no backend named '$backend_name'";
-
     $backend->call_rpc($c, $req_storage);
 
     return;
@@ -234,12 +259,12 @@ sub _get_error_details {
     my (%args) = @_;
 
     return {
-            error   => 'Error Processing Request',
-            details => {
-                error_code   => $args{code},
-                reason       => $args{reason},
-                request_body => $args{message},
-            },
+        error   => 'Error Processing Request',
+        details => {
+            error_code   => $args{code},
+            reason       => $args{reason},
+            request_body => $args{message},
+        },
     };
 }
 
