@@ -99,8 +99,8 @@ sub pending_requests {
 sub redis {
     my $self = shift;
     return $self->{redis} //= Mojo::Redis2->new(
-        url             => $self->{redis_uri},
-        encoding        => undef,
+        url      => $self->{redis_uri},
+        encoding => undef,
     );
 }
 
@@ -127,7 +127,6 @@ sub whoami {
 
     return $self->{whoami};
 }
-
 
 =head2 call_rpc
 
@@ -174,10 +173,10 @@ Returns undef.
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
 
-    my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
+    my $rpc_response_cb               = $self->get_rpc_response_cb($c, $req_storage);
     my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hooks             = delete($req_storage->{before_call})             || [];
+    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
+    my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
@@ -197,12 +196,15 @@ sub call_rpc {
             foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
 
             my $api_response;
-            if ($result->is_error){
-                $rpc_failure_cb->($c, $result, $req_storage, {
-                    code    => $result->error_code,
-                    message => $result->error_message,
-                    type    => 'CallError',
-                }) if $rpc_failure_cb;
+            if ($result->is_error) {
+                $rpc_failure_cb->(
+                    $c, $result,
+                    $req_storage,
+                    {
+                        code    => $result->error_code,
+                        message => $result->error_message,
+                        type    => 'CallError',
+                    }) if $rpc_failure_cb;
 
                 return Future->done if $block_response;
                 $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
@@ -216,7 +218,7 @@ sub call_rpc {
 
             return Future->done;
         }
-        )->catch(
+    )->catch(
         sub {
             my $error = shift;
             my $api_response;
@@ -224,7 +226,10 @@ sub call_rpc {
             return Future->done unless $c && $c->tx;
 
             my $err_type = $error eq 'Timeout' ? $error : "RedisError";
-            $rpc_failure_cb->($c, undef, $req_storage, {
+            $rpc_failure_cb->(
+                $c, undef,
+                $req_storage,
+                {
                     code    => $err_type,
                     message => $error,
                     type    => $err_type,
@@ -232,7 +237,7 @@ sub call_rpc {
 
             $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
 
-            return Future->done  if $block_response || !$api_response;
+            return Future->done if $block_response || !$api_response;
 
             $c->send({json => $api_response}, $req_storage);
         })->retain;
@@ -290,12 +295,7 @@ sub _send_request {
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => (
-            'general',
-            ('MAXLEN', '~', '100000'),
-            '*',
-            $request_data->@*
-        ),
+        xadd => XADD => ('general', ('MAXLEN', '~', '100000'), '*', $request_data->@*),
         sub {
             my ($redis, $err) = @_;
 
@@ -337,11 +337,10 @@ sub _on_message {
     }
 
     my $missed_param;
-    if(
-        ref $message ne 'HASH' 
-        || !$message->{$missed_param = "message_id"} 
-        || !$message->{$missed_param = "response"}
-    ) {
+    if (   ref $message ne 'HASH'
+        || !$message->{$missed_param = "message_id"}
+        || !$message->{$missed_param = "response"})
+    {
         $log->errorf("Failed to process response: '%s' does not exist, original message content was %s", $missed_param, $raw_message);
         return;
     }
@@ -360,10 +359,10 @@ sub _prepare_request_data {
 
     $req_storage->{call_params} ||= {};
 
-    my $method = $req_storage->{method};
+    my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
-    my $params = $self->make_call_params($c, $req_storage);
+    my $params       = $self->make_call_params($c, $req_storage);
     my $stash_params = $req_storage->{stash_params};
 
     my $request_data = [
@@ -371,8 +370,8 @@ sub _prepare_request_data {
         who      => $self->whoami,
         deadline => time + RESPONSE_TIMEOUT,
 
-        $params  ?  (args   => encode_json_utf8($params))        : (),
-        $stash_params   ?  (stash  => encode_json_utf8($stash_params))  : (),
+        $params       ? (args  => encode_json_utf8($params))       : (),
+        $stash_params ? (stash => encode_json_utf8($stash_params)) : (),
     ];
 
     return $msg_type, $request_data;
