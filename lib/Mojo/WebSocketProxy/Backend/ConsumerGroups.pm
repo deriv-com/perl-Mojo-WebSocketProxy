@@ -53,7 +53,7 @@ Creates object instance of the class
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
-=item * C<category_map_config> - Category mapper configuration file path.
+=item * C<category_timeout_config> - Category timeouts configurations.
 
 =back
 
@@ -189,7 +189,7 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    my $req_group                     = delete($req_storage->{msg_group}) || 'general';
+    my $req_group                     = $req_storage->{msg_group} || 'general';
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
