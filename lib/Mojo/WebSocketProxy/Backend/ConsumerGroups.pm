@@ -189,13 +189,15 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    my $req_group                     = $req_storage->{msg_group} || 'general';
+    my $category_name                 = $req_storage->{msg_group} || 'general';
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
-    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage);
+    my $category_timeout = $self->_rpc_category_timeout($category_name);
+
+    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
     my $block_response = delete($req_storage->{block_response});
-    $self->request($request_data, $req_group)->then(
+    $self->request($request_data, $category_name, $category_timeout)->then(
         sub {
             my ($message) = @_;
 
@@ -265,6 +267,10 @@ Sends request to backend service. The method accepts single unnamed argument:
 
 =item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
 
+=item * C<req_category> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
+
+=item * C<req_timeout> - timeout value for this specific call (differs based on category)
+
 =back
 
 Returns future.
@@ -274,7 +280,7 @@ And it'll be marked as failed in case of request timeout or in case of error put
 =cut
 
 sub request {
-    my ($self, $request_data, $req_group) = @_;
+    my ($self, $request_data, $req_category, $req_timeout) = @_;
 
     my $complete_future = $self->loop->new_future;
 
@@ -287,10 +293,8 @@ sub request {
 
     push @$request_data, ('message_id' => $msg_id);
 
-    my $rpc_category_timeout = $self->_rpc_category_timeout($req_group);
-    my $sent_future          = $self->_send_request($request_data, $req_group);
-
-    return Future->wait_any($self->loop->timeout_future(after => $rpc_category_timeout), Future->needs_all($complete_future, $sent_future));
+    my $sent_future = $self->_send_request($request_data, $req_category);
+    return Future->wait_any($self->loop->timeout_future(after => $req_timeout), Future->needs_all($complete_future, $sent_future));
 }
 
 # We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
@@ -304,10 +308,9 @@ sub _next_request_id {
 }
 
 sub _rpc_category_timeout {
-    my ($self, $msg_group) = @_;
+    my ($self, $category_name) = @_;
 
-    my $rpc_group_timeout = $self->category_timeout_config->{$msg_group} // $self->timeout;
-    return $rpc_group_timeout;
+    return $self->category_timeout_config->{$category_name} // $self->timeout;
 }
 
 sub _send_request {
@@ -375,9 +378,10 @@ sub _on_message {
 }
 
 sub _prepare_request_data {
-    my ($self, $c, $req_storage) = @_;
+    my ($self, $c, $req_storage, $req_timeout) = @_;
 
     $req_storage->{call_params} ||= {};
+    $req_timeout //= RESPONSE_TIMEOUT;
 
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
@@ -388,7 +392,7 @@ sub _prepare_request_data {
     my $request_data = [
         rpc      => $method,
         who      => $self->whoami,
-        deadline => time + RESPONSE_TIMEOUT,
+        deadline => time + $req_timeout,
 
         $params       ? (args  => encode_json_utf8($params))       : (),
         $stash_params ? (stash => encode_json_utf8($stash_params)) : (),
