@@ -53,7 +53,9 @@ Creates object instance of the class
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
-=item * C<category_timeout_config> - Category timeouts configurations.
+=item * C<category_timeout_config> - Hash containing the timeout value for each rpc call category.
+
+{ mt5 => 120, general => 5 }
 
 =back
 
@@ -267,9 +269,9 @@ Sends request to backend service. The method accepts single unnamed argument:
 
 =item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
 
-=item * C<req_category> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
+=item * C<category_name> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
 
-=item * C<req_timeout> - timeout value for this specific call (differs based on category)
+=item * C<category_timeout> - timeout value for this specific call (differs based on category)
 
 =back
 
@@ -280,7 +282,7 @@ And it'll be marked as failed in case of request timeout or in case of error put
 =cut
 
 sub request {
-    my ($self, $request_data, $req_category, $req_timeout) = @_;
+    my ($self, $request_data, $category_name, $category_timeout) = @_;
 
     my $complete_future = $self->loop->new_future;
 
@@ -293,8 +295,8 @@ sub request {
 
     push @$request_data, ('message_id' => $msg_id);
 
-    my $sent_future = $self->_send_request($request_data, $req_category);
-    return Future->wait_any($self->loop->timeout_future(after => $req_timeout), Future->needs_all($complete_future, $sent_future));
+    my $sent_future = $self->_send_request($request_data, $category_name);
+    return Future->wait_any($self->loop->timeout_future(after => $category_timeout), Future->needs_all($complete_future, $sent_future));
 }
 
 # We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
