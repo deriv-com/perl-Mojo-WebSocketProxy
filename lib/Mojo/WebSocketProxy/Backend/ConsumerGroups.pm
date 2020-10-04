@@ -22,6 +22,7 @@ no indirect;
 __PACKAGE__->register_type('consumer_groups');
 
 use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
+use constant DEFAULT_CATEGORY_NAME => 'general';
 
 =head1 NAME
 
@@ -191,14 +192,14 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    my $category_name                 = $req_storage->{msg_group} || 'general';
+    my $category_name                 = $req_storage->{msg_group} || DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
     my $category_timeout = $self->_rpc_category_timeout($category_name);
 
-    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
     my $block_response = delete($req_storage->{block_response});
+    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
     $self->request($request_data, $category_name, $category_timeout)->then(
         sub {
             my ($message) = @_;
