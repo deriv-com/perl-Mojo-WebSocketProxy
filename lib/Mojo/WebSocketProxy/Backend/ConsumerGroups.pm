@@ -56,7 +56,7 @@ Creates object instance of the class
 
 =item * C<category_timeout_config> - Hash containing the timeout value for each rpc call category.
 
-{ mt5 => 120, general => 5 }
+    { mt5 => 120, general => 5 }
 
 =back
 
