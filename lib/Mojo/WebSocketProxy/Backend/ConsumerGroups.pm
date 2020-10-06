@@ -7,8 +7,7 @@ use Log::Any qw($log);
 use Mojo::Redis2;
 use IO::Async::Loop::Mojo;
 use Data::UUID;
-use YAML::XS;
-use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
+    use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Syntax::Keyword::Try;
 use curry::weak;
 use MojoX::JSON::RPC::Client;
@@ -119,6 +118,10 @@ sub timeout {
 }
 
 =head2 category_timeout_config
+
+Hash containing the timeout value for each rpc call category.
+
+    { mt5 => 120, general => 5 }    
 
 =cut
 
@@ -317,11 +320,11 @@ sub _rpc_category_timeout {
 }
 
 sub _send_request {
-    my ($self, $request_data, $req_group) = @_;
+    my ($self, $request_data, $category_name) = @_;
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => ($req_group, ('MAXLEN', '~', '100000'), '*', $request_data->@*),
+        xadd => XADD => ($category_name, ('MAXLEN', '~', '100000'), '*', $request_data->@*),
         sub {
             my ($redis, $err) = @_;
 
