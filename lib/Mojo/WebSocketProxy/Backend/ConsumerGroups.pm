@@ -54,7 +54,7 @@ Creates object instance of the class
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
 
-=item * C<category_timeout_config> - Hash containing the timeout value for each rpc call category.
+=item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
     { mt5 => 120, general => 5 }
 
