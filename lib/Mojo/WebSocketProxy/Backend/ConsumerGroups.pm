@@ -22,6 +22,7 @@ __PACKAGE__->register_type('consumer_groups');
 
 use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
 use constant DEFAULT_CATEGORY_NAME => 'general';
+use constant REQUIRED_RESPONSE_PARAMETERS => qw(message_id response);
 
 =head1 NAME
 
@@ -365,12 +366,14 @@ sub _on_message {
         return;
     }
 
-    my $missed_param;
-    if (   ref $message ne 'HASH'
-        || !$message->{$missed_param = "message_id"}
-        || !$message->{$missed_param = "response"})
-    {
-        $log->errorf("Failed to process response: '%s' does not exist, original message content was %s", $missed_param, $raw_message);
+    if (ref $message ne 'HASH') {
+        $log->errorf("Failed to process response: Invalid message type got: %s, want: HASH", ref $message);
+        return;
+    }
+
+    my (@missing_params) = grep { !exists $message->{$_} } REQUIRED_RESPONSE_PARAMETERS;
+    if (scalar @missing_params) {
+        $log->errorf("Failed to process response: '%s' are missing, original message content was %s", join(",", @missing_params), $raw_message);
         return;
     }
 
