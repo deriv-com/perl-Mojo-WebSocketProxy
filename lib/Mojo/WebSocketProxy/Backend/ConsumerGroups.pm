@@ -196,15 +196,16 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    my $category_name                 = $req_storage->{msg_group} || DEFAULT_CATEGORY_NAME;
+    # stream category which message should be assigned to
+    my $msg_group                     = $req_storage->{msg_group} || DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
-    my $category_timeout = $self->_rpc_category_timeout($category_name);
+    my $category_timeout = $self->_rpc_category_timeout($msg_group);
 
     my $block_response = delete($req_storage->{block_response});
     my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
-    $self->request($request_data, $category_name, $category_timeout)->then(
+    $self->request($request_data, $msg_group, $category_timeout)->then(
         sub {
             my ($message) = @_;
 
@@ -268,7 +269,7 @@ sub call_rpc {
 
 =head2 request
 
-Sends request to backend service. The method accepts single unnamed argument:
+Sends request to backend service. The method accepts following arguments:
 
 =over 4
 
@@ -390,7 +391,6 @@ sub _prepare_request_data {
     my ($self, $c, $req_storage, $req_timeout) = @_;
 
     $req_storage->{call_params} ||= {};
-    $req_timeout //= RESPONSE_TIMEOUT;
 
     my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
