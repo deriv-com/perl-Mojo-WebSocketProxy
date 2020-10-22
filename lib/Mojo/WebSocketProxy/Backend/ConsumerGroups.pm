@@ -373,7 +373,7 @@ sub _on_message {
     }
 
     my (@missing_params) = grep { !exists $message->{$_} } REQUIRED_RESPONSE_PARAMETERS;
-    if (scalar @missing_params) {
+    if (@missing_params) {
         $log->errorf("Failed to process response: '%s' are missing, original message content was %s", join(",", @missing_params), $raw_message);
         return;
     }
