@@ -20,8 +20,8 @@ no indirect;
 
 __PACKAGE__->register_type('consumer_groups');
 
-use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
-use constant DEFAULT_CATEGORY_NAME => 'general';
+use constant RESPONSE_TIMEOUT             => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
+use constant DEFAULT_CATEGORY_NAME        => 'general';
 use constant REQUIRED_RESPONSE_PARAMETERS => qw(message_id response);
 
 =head1 NAME
@@ -53,6 +53,8 @@ Creates object instance of the class
 =item * C<redis> - Redis client object (must be compatible with L<Mojo::Redis2>). This argument will override the C<redis_uri> argument.
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 30
+
+=item * C<queue_separation_enabled> - Boolean to specify if queue separation should be enabled or not.
 
 =item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
@@ -130,6 +132,16 @@ sub category_timeout_config {
     return shift->{category_timeout_config} //= {};
 }
 
+=head2 queue_separation_enabled
+
+Boolean specifying if category separation should be enabled.
+
+=cut
+
+sub queue_separation_enabled {
+    return shift->{queue_separation_enabled} // 0;
+}
+
 =head2 whoami
 
 Return unique ID of Redis which will be used by backend server to send response.
@@ -199,7 +211,8 @@ sub call_rpc {
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
     # stream category which message should be assigned to
-    my $msg_group                     = $req_storage->{msg_group} || DEFAULT_CATEGORY_NAME;
+    my $msg_group = $self->queue_separation_enabled ? $req_storage->{msg_group} : undef;
+    $msg_group //= DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
