@@ -139,7 +139,7 @@ Boolean specifying if category separation should be enabled.
 =cut
 
 sub queue_separation_enabled {
-    return shift->{queue_separation_enabled} // 0;
+    return shift->{queue_separation_enabled} //= 0;
 }
 
 =head2 whoami
