@@ -13,7 +13,7 @@ use JSON::MaybeUTF8 qw(:v1);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
-use Scalar::Util qw(blessed);
+use Scalar::Util qw(blessed weaken);
 use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
@@ -93,7 +93,30 @@ sub open_connection {
         $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
     });
 
-    $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
+    if ($config->{before_restart}) {
+        #TODO: Here is probably memory leak, but with weaken we're loosing reference. Why?
+        my $weak_context = $c;
+        my $cb_before_restart = Mojo::IOLoop->singleton->once(finish => sub {
+            return unless $weak_context;
+            $config->{before_restart}->($weak_context);
+        });
+        $c->stash(ws_api_restart_handler => $cb_before_restart);
+    }
+
+    $c->on(finish => &on_finish_connection);
+
+    return;
+}
+
+sub on_finish_connection {
+    my ($c) = @_;
+
+    my $config = $c->wsp_config->{config};
+
+    my $cb = delete $c->stash->{ws_api_restart_handler};
+    Mojo::IOLoop->singleton->unsubscribe(finish => $cb);
+
+    return $config->{finish_connection} if $config->{finish_connection};
 
     return;
 }
