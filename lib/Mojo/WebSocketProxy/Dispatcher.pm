@@ -94,16 +94,16 @@ sub open_connection {
     });
 
     if ($config->{before_restart}) {
-        #TODO: Here is probably memory leak, but with weaken we're loosing reference. Why?
-        my $weak_context = $c;
-        my $cb_before_restart = Mojo::IOLoop->singleton->once(finish => sub {
-            return unless $weak_context;
-            $config->{before_restart}->($weak_context);
-        });
+        my $connection_id      = $c + 0;
+        my $cb_before_restart = Mojo::IOLoop->singleton->once(
+            finish => sub {
+                return unless $connection_id;
+                $config->{before_restart}->($connection_id);
+            });
         $c->stash(ws_api_restart_handler => $cb_before_restart);
     }
 
-    $c->on(finish => &on_finish_connection);
+    $c->on(finish => \&on_finish_connection);
 
     return;
 }
