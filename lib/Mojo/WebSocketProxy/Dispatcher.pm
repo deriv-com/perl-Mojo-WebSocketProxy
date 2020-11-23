@@ -13,7 +13,7 @@ use JSON::MaybeUTF8 qw(:v1);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
-use Scalar::Util qw(blessed weaken);
+use Scalar::Util qw(blessed);
 use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
@@ -93,30 +93,7 @@ sub open_connection {
         $config->{binary_frame}(@_) if $bytes and exists($config->{binary_frame});
     });
 
-    if ($config->{before_restart}) {
-        my $connection_id      = $c + 0;
-        my $cb_before_restart = Mojo::IOLoop->singleton->once(
-            finish => sub {
-                return unless $connection_id;
-                $config->{before_restart}->($connection_id);
-            });
-        $c->stash(ws_api_restart_handler => $cb_before_restart);
-    }
-
-    $c->on(finish => \&on_finish_connection);
-
-    return;
-}
-
-sub on_finish_connection {
-    my ($c) = @_;
-
-    my $config = $c->wsp_config->{config};
-
-    my $cb = delete $c->stash->{ws_api_restart_handler};
-    Mojo::IOLoop->singleton->unsubscribe(finish => $cb);
-
-    return $config->{finish_connection} if $config->{finish_connection};
+    $c->on(finish => $config->{finish_connection}) if $config->{finish_connection};
 
     return;
 }

@@ -91,6 +91,8 @@ sub register {
             return $dispatcher_config;
         });
 
+     Mojo::IOLoop->singleton->once(finish => $config->{before_shutdown}) if $config->{before_shutdown};
+
     return;
 }
 
