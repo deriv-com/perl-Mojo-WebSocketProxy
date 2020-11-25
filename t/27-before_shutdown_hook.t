@@ -1,14 +1,13 @@
 use strict;
 use warnings;
 
-use t::TestWSP qw/test_wsp/;
 use Test::More;
 use Test::Mojo;
 use Mojo::IOLoop;
 use Future;
 
 subtest "before shutdown hook" => sub {
-    my $hook_was_called = 0;
+    our $hook_was_called = 0;
 
     package t::MyApp {
         use base 'Mojolicious';
@@ -21,8 +20,8 @@ subtest "before shutdown hook" => sub {
                         ['success'],
                     ],
                     base_path => '/api',
-                    url => $ENV{T_TestWSP_RPC_URL} // die("T_TestWSP_RPC_URL is not defined"),
-                    before_shutdown => sub { $hook_was_called++ },
+                    url => $ENV{T_TestWSP_RPC_URL},
+                    before_shutdown => sub { $main::hook_was_called++ },
                  }
              );
         }
@@ -33,7 +32,7 @@ subtest "before shutdown hook" => sub {
 
     Mojo::IOLoop->singleton->emit('finish');
 
-    is $hook_was_called, 1 'Hook is called exactly one time';
+    is $hook_was_called, 1, 'Hook is called exactly one time';
 };
 
 done_testing;
