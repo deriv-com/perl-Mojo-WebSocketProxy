@@ -299,6 +299,8 @@ sub _send_request {
         sub {
             my ($redis, $err) = @_;
 
+            return $f if $f->is_ready;
+
             return $f->fail($err) if $err;
 
             return $f->done();
