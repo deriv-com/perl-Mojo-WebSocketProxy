@@ -1,0 +1,58 @@
+Revision history for Perl module Mojo::WebSocketProxy
+
+0.13      2020-11-25 01:47:10+00:00 UTC
+
+    - Remove warning line for RPC communication failure.
+    - Add documentation about RPC failure callback.
+0.13      2019-09-20 01:44:27+00:00 UTC
+
+    - Change sanity error type
+    - Add callback for use on RPC communication failure
+
+0.12      2019-08-15 09:57:43+00:00 UTC
+    - remove hardcoded config, read from object
+
+0.11      2018-08-15 13:03:25+08:00 Asia/Manila
+    - Fix test dependencies (switching from build phase,) adding Path::Tiny.
+
+0.10      2018-08-14 12:40:37+08:00 Asia/Manila
+    - Censor messages failing JSON decoding on Dispatcher::open_connection(),
+      moving these from error logging to debug logging to prevent leaking
+      private information, as well as dropping the WebSocket connection
+      entirely.
+
+0.09      2018-08-01 10:09:57+08:00 Asia/Manila
+    - Fix character encoding issues on Dispatcher::open_connection() due
+      to Mojo::Transaction::WebSockets emitting JSON-decoded `message` events;
+      listen on `text` events instead, which pass raw WS_TEXT frames for
+      decoding via JSON::MaybeUTF8
+    - Relax Mojolicious dependency to >= 7.29
+
+0.08      2018-07-09 10:08:29+08:00 Asia/Manila
+    - Fix Changelog
+
+0.07      2018-07-06 13:11:47+08:00 Asia/Manila
+    - Add warning with transaction details failure, if available.
+    - Don't bother removing args from req storage after SanityCheckFailed.
+    - Normalise received JSON via NFC
+    - Add binary_frame hook to capture binary uploaded data.
+
+0.06      2017-06-01 03:05:17+00:00 UTC
+    This introduces support for callbacks which return Future instances,
+    allowing for deferred processing when the before or after hooks need
+    to perform I/O before returning a result.
+
+0.05      2017-05-01 06:30:16+00:00 UTC
+    - remove Data::UUID
+
+0.04      2017-02-21 02:16:06+00:00 UTC
+    - Switch to dzil
+
+0.03 Thu Jun  9 15:50:00 2016
+    - Use before send hook to check response size
+
+0.02 Thu Jun  9 09:28:00 2016
+    - Minor fixes
+
+0.01 Thu Jun  2 06:02:18 2016
+    - First version, released on an unsuspecting world.
