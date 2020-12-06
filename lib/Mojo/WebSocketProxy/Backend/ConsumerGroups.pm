@@ -58,7 +58,7 @@ Creates object instance of the class
 
 =item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
-    { mt5 => 120, general => 5 }
+    { general => 5, other => 120 }
 
 =back
 
