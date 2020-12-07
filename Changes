@@ -4,7 +4,7 @@ Revision history for Perl module Mojo::WebSocketProxy
 
     - Add support for separating messages to different channels with
       different timeout values for each channel.
-    - Increase minimum Perl version for the module.
+    - Increase minimum Perl version from 5.014 to 5.024 for the module.
     - Remove warning line for RPC communication failure.
     - Add documentation about RPC failure callback.
 0.13      2019-09-20 01:44:27+00:00 UTC
