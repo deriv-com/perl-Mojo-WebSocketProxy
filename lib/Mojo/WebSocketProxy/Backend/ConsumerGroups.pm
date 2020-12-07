@@ -290,7 +290,7 @@ Sends request to backend service. The method accepts following arguments:
 
 =item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
 
-=item * C<category_name> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
+=item * C<$category_name> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
 
 =item * C<category_timeout> - timeout value for this specific call (differs based on category)
 
