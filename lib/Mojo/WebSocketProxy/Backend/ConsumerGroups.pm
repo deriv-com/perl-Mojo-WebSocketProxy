@@ -54,7 +54,7 @@ Creates object instance of the class
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 30
 
-=item * C<queue_separation_enabled> - Boolean to specify if queue separation should be enabled or not.
+=item * C<queue_separation_enabled> - Boolean to specify if messages should be assigned to different queus based on their C<msg_group> or only C<general> queue.
 
 =item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
