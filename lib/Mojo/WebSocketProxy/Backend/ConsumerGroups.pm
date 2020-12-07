@@ -192,7 +192,7 @@ called only when there is an response from the remote call.
 
 =item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
-=item * C<msg_group> If supplied, the message will be assigned to the Redis Channel with the corresponding name. The I<< general >> channel will be used by default in case of either C<< $msg_type >> is not provided or C<queue_separation_enabled> is 0.
+=item * C<msg_group> - if supplied, the message will be assigned to the Redis channel with the corresponding name. The I<< general >> channel will be used by default if either C<< $msg_type >> is not provided or C<queue_separation_enabled> is 0.
 
 =back
 
