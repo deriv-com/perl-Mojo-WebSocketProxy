@@ -51,7 +51,7 @@ use Test::MockObject;
 
 # Mocking RPC client to catch RPC calls
 my ($url, $call_params, $fake_rpc_response, $fake_rpc_client, $rpc_client_mock, $rpc_response);
-$rpc_response = {ok => 1};
+$rpc_response      = {ok => 1};
 $fake_rpc_response = Test::MockObject->new();
 $fake_rpc_response->mock('result',   sub { $rpc_response });
 $fake_rpc_response->mock('is_error', sub { '' });
@@ -82,7 +82,7 @@ my $res;
 
 $t->websocket_ok('/api' => {});
 
-$t = $t->send_ok({json => {some_action => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 
 is $url, 'http://rpc-host.com:8080/some_action', 'It should use url + method';
@@ -97,7 +97,7 @@ is_deeply $res,
     },
     'It should return formatting response';
 
-$t = $t->send_ok({json => {not_exists_action => 1}})->message_ok;
+$t   = $t->send_ok({json => {not_exists_action => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 is_deeply $res,
     {
@@ -110,11 +110,10 @@ is_deeply $res,
     },
     'It should return error response if action does not exist';
 
-$t = $t->send_ok({json => {some_action1 => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action1 => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 ok $res->{some_action1}, 'Should return success';
 ok $res->{debug},        'Should add debug param';
-
 
 $authorized = '';
 $url        = '';
@@ -122,7 +121,6 @@ $t          = $t->send_ok({json => {some_action1 => 1}})->message_ok;
 $res        = decode_json_utf8($t->message->[1]);
 is $res->{error}->{code}, 'AuthError', 'It should return before_forward response';
 ok !$url, 'It should not call RPC if before_forward returns anything';
-
 
 sub instead_of_forward {
     shift->call_rpc({
@@ -132,7 +130,7 @@ sub instead_of_forward {
     });
 }
 
-$t = $t->send_ok({json => {some_action2 => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action2 => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 ok $res->{some_action2}, 'Should return success';
 is $res->{msg_type}, 'some_action2', 'Should use custom msg_type';
@@ -141,7 +139,7 @@ sub some_action3 {
     return {custom_result => 1};
 }
 
-$t = $t->send_ok({json => {some_action3 => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action3 => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 is $res->{custom_result}, 1, 'Should return success';
 ok $res->{debug}, 'Should add debug param';
@@ -151,7 +149,7 @@ sub some_action4 {
     return {custom_result => 2};
 }
 
-$t = $t->send_ok({json => {some_action4 => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action4 => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 is $res->{custom_result}, 2, 'Should return success';
 ok $res->{debug}, 'Should add debug param';
@@ -162,7 +160,7 @@ sub some_action51 {
     return;
 }
 
-$t = $t->send_ok({json => {some_action5 => 1}})->message_ok;
+$t   = $t->send_ok({json => {some_action5 => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 is $res->{debug}, 3, 'You can use request storage to share data between hooks';
 
@@ -173,7 +171,6 @@ $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 $t = $t->send_ok({json => {some_action6 => 1}})->message_ok;
 is $call_params->{params}->{stashed_data}, 1, 'You can send data from Mojolicious stash to RPC service';
 
-
 sub some_action7 {
     my ($rpc_response, $api_response, $req_storage) = @_;
     return {
@@ -183,8 +180,8 @@ sub some_action7 {
 }
 
 $rpc_response = {status => 1};
-$t = $t->send_ok({json => {some_action7 => 1}})->message_ok;
-$res = decode_json_utf8($t->message->[1]);
+$t            = $t->send_ok({json => {some_action7 => 1}})->message_ok;
+$res          = decode_json_utf8($t->message->[1]);
 is $res->{my_response}->{status}, 1, 'It should return custom answer';
 is $res->{my_response}->{status}, 1, 'It should return custom answer';
 
