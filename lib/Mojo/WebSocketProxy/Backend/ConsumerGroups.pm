@@ -458,6 +458,7 @@ sub get_proper_stream_name {
     my ($self, $proposed_stream_name) = @_;
 
     my $stream //= DEFAULT_CATEGORY_NAME;
+    $proposed_stream_name //= '';
 
     if ($self->queue_separation_enabled) {
         return $stream if $self->ignore_separations && any {
