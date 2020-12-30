@@ -57,7 +57,7 @@ Creates object instance of the class
 
 =item * C<queue_separation_enabled> - Boolean to specify if messages should be assigned to different queues based on their C<msg_group> or default to C<general> queue.
 
-=item * C<ignore_separations> - An array of queue names which should be ignored and continue with general stream. available if C<queue_separation_enabled> is 1.
+=item * C<ignore_separations> - An array of queue names which will be ignored and continue to use the default C<general> stream.  Available if C<queue_separation_enabled> is 1.
 
 =item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
