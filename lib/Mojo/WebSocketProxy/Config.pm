@@ -38,7 +38,7 @@ sub init {
 
     die 'Expected a coderef for opened_connection' if $in_config->{opened_connection} && ref($in_config->{opened_connection}) ne 'CODE';
     die 'Expected a coderef for finish_connection' if $in_config->{finish_connection} && ref($in_config->{finish_connection}) ne 'CODE';
-    die 'Expected a regex for skip_check_sanity'   if $in_config->{skip_check_sanity} && ref($in_config->{skip_check_sanity}) ne 'Regexp';
+    die 'Expected a regex for skip_check_sanity' if $in_config->{skip_check_sanity} && ref($in_config->{skip_check_sanity}) ne 'Regexp';
 
     $self->{config} = $in_config;
     return;

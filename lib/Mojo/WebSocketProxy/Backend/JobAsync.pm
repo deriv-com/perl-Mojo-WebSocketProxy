@@ -130,7 +130,7 @@ sub jobman {
     return $self->{jobman} //= do {
         $self->loop->add(my $jobman = Job::Async->new);
         $jobman;
-    }
+        }
 }
 
 =head2 call_rpc
@@ -141,7 +141,7 @@ Implements the L<Mojo::WebSocketProxy::Backend/call_rpc> interface.
 
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
-    my $method   = $req_storage->{method};
+    my $method = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
     $req_storage->{call_params} ||= {};
@@ -164,7 +164,7 @@ sub call_rpc {
             params => encode_json_utf8($params),
         ),
         $timeout_future
-    )->on_ready(
+        )->on_ready(
         sub {
             my ($f) = @_;
             $log->debugf('->submit completion: ', $f->state);
@@ -185,7 +185,8 @@ sub call_rpc {
 
                     $api_response = $rpc_response_cb->($result->result);
                     stats_inc("rpc_queue.client.jobs.success", {tags => ["rpc:" . $req_storage->{name}, 'clientID:' . $self->client->id]});
-                } catch {
+                }
+                catch {
                     my $error = $@;
                     $log->errorf("Failed to process response of method %s: %s", $method, $error);
                     stats_inc("rpc_queue.client.jobs.fail",

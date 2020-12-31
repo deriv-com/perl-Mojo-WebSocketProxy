@@ -68,7 +68,7 @@ test_wsp {
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
     ok($t::FrontEnd::rpc_failure_cb_called,   'rpc failure cb is called');
     is(decode_json_utf8($t->message->[1])->{send_caller}, 'rpc_failure_cb', 'send is called by rpc failure cb');
-    is($call_send_count,                                  1,                'send called only once, in rpc_failure_cb');
+    is($call_send_count, 1, 'send called only once, in rpc_failure_cb');
 }
 't::FrontEnd';
 
@@ -84,7 +84,7 @@ test_wsp {
     ok(!$t::FrontEnd::rpc_response_cb_called, 'rpc response_cb is not called');
     ok($t::FrontEnd::rpc_failure_cb_called,   'rpc failure cb is called');
     is(decode_json_utf8($t->message->[1])->{error}{code}, 'WrongResponse', 'send is called after rpc_failure cb');
-    is($call_send_count,                                  1,               'send called only once, after called rpc_failure_cb');
+    is($call_send_count, 1, 'send called only once, after called rpc_failure_cb');
 }
 't::FrontEnd';
 
