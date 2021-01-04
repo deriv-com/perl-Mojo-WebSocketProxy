@@ -440,9 +440,10 @@ sub _prepare_request_data {
 
 =head2 get_proper_stream_name
 
-This method looking for stream name that message should be added to,
-I<general> is the default stream name if either C<$proposed_stream_name> is not provided or C<queue_separation_enabled> is 0.
-Also C<$proposed_stream_name> will be ignored if C<queue_separation_enabled> is 0.
+This method is produce correct stream name that message should be added to.
+if either (C<queue_separation_enabled> is 0)
+or (C<$proposed_stream_name> is not provided)
+or (C<$proposed_stream_name> is in C<ignore_separations>): I<DEFAULT_CATEGORY_NAME> will be correct stream.
 
 =over 4
 
