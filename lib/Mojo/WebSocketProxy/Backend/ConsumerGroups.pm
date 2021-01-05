@@ -210,7 +210,7 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    # stream category$self->queue_separation_enabled which message should be assigned to
+    # stream category which message should be assigned to
     $req_storage->{msg_group} = $self->queue_separation_enabled && $req_storage->{msg_group} ? $req_storage->{msg_group} : DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
