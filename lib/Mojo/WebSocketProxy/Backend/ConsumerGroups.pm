@@ -11,7 +11,6 @@ use JSON::MaybeUTF8 qw(encode_json_utf8 decode_json_utf8);
 use Syntax::Keyword::Try;
 use curry::weak;
 use MojoX::JSON::RPC::Client;
-use List::Util qw(any);
 
 use parent qw(Mojo::WebSocketProxy::Backend);
 
@@ -54,6 +53,8 @@ Creates object instance of the class
 =item * C<redis> - Redis client object (must be compatible with L<Mojo::Redis2>). This argument will override the C<redis_uri> argument.
 
 =item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 30
+
+=item * C<queue_separation_enabled> - Boolean to specify if messages should be assigned to different queus based on their C<msg_group> or only C<general> queue.
 
 =item * C<category_timeout_config> - A hash containing the timeout value for each request category.
 
@@ -131,6 +132,16 @@ sub category_timeout_config {
     return shift->{category_timeout_config} //= {};
 }
 
+=head2 queue_separation_enabled
+
+Boolean specifying if category separation should be enabled.
+
+=cut
+
+sub queue_separation_enabled {
+    return shift->{queue_separation_enabled} //= 0;
+}
+
 =head2 whoami
 
 Return unique ID of Redis which will be used by backend server to send response.
@@ -181,7 +192,7 @@ called only when there is an response from the remote call.
 
 =item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
-=item * C<stream_name> - The name of stream that message should get added.
+=item * C<msg_group> - if supplied, the message will be assigned to the Redis channel with the corresponding name. The I<< general >> channel will be used by default if either C<< $msg_type >> is not provided or C<queue_separation_enabled> is 0.
 
 =back
 
@@ -199,15 +210,17 @@ sub call_rpc {
     my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
     my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
-    my $stream_name                   = $req_storage->{msg_group} // DEFAULT_CATEGORY_NAME;
+    # stream category which message should be assigned to
+    my $msg_group = $self->queue_separation_enabled ? $req_storage->{msg_group} : undef;
+    $msg_group //= DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
-    my $category_timeout = $self->_rpc_category_timeout($stream_name);
+    my $category_timeout = $self->_rpc_category_timeout($msg_group);
 
     my $block_response = delete($req_storage->{block_response});
     my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
-    $self->request($request_data, $stream_name, $category_timeout)->then(
+    $self->request($request_data, $msg_group, $category_timeout)->then(
         sub {
             my ($message) = @_;
 
