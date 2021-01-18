@@ -181,7 +181,7 @@ called only when there is an response from the remote call.
 
 =item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
-=item * C<stream_name> - The name of stream that message should get added.
+=item * C<stream_name> - Name of the stream that message should be added to.
 
 =back
 
