@@ -4,6 +4,7 @@ use warnings;
 use Test::More;
 use Mojo::WebSocketProxy::Backend::ConsumerGroups;
 use Test::MockObject;
+use Test::MockModule;
 use Test::Fatal;
 
 subtest 'Subscribe for new messaging' => sub {
@@ -195,6 +196,146 @@ subtest 'Calling callbacks on failure' => sub {
         send        => 1
         },
         'On failure callbacks were called';
+};
+
+subtest 'RPC Category separation enable/disable' => sub {
+    my $req_id = '1';
+    my $redis  = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->() });
+    $redis->mock(subscribe => sub { });
+    $redis->mock(on        => sub { });
+
+    my $cg_mock = Test::MockModule->new('Mojo::WebSocketProxy::Backend::ConsumerGroups');
+
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis   => $redis,
+        timeout => 0.0001,
+        queue_separation_enabled => 1,
+        category_timeout_config => { general => 1, mt5 => 2},
+    );
+
+    my $final_category;
+    $cg_mock->mock(
+        _send_request => sub {
+            my ($self, $request_data, $category_name) = @_;
+            $final_category = $category_name;
+            return $cg_mock->original('_send_request')->($self, $request_data, $category_name);
+        });
+
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub { 1 });
+    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1, 2, 3]; return \%e });
+
+    my $result;
+    $c->mock(send => sub { $result = $_[1]->{json} });
+
+    my $req_storage = {
+        method       => 'ping',
+        msg_group => 'mt5',
+        stash_params => [],
+        args         => {},
+    };
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
+
+    is $final_category, 'mt5', 'Correct category selected';
+    is_deeply $result,
+        {
+        ping     => {success => 1},
+        msg_type => 'ping'
+        },
+        'Got correct rpc response';
+    
+    $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis   => $redis,
+        timeout => 0.0001,
+        queue_separation_enabled => 0,
+    );
+
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
+
+    is $final_category, 'general', 'Correct default category';
+    $cg_mock->unmock_all();
+};
+
+subtest 'RPC Category separtion timeouts' => sub {
+    my $req_id = '1';
+    my $redis  = Test::MockObject->new();
+    $redis->mock(_execute => sub { pop->() });
+    $redis->mock(subscribe => sub { });
+    $redis->mock(on        => sub { });
+
+    my $cg_mock = Test::MockModule->new('Mojo::WebSocketProxy::Backend::ConsumerGroups');
+
+    my $timeouts_config = { general => 1, mt5 => 5, payment => 4 };
+    my $cg_backend = Mojo::WebSocketProxy::Backend::ConsumerGroups->new(
+        redis   => $redis,
+        timeout => 1,
+        queue_separation_enabled => 1,
+        category_timeout_config => $timeouts_config,
+    );
+
+    my $e = {};
+    $cg_mock->mock(
+        _send_request => sub {
+            my ($self, $request_data, $category_name) = @_;
+            my %req_hash = @$request_data;
+            $e->{$req_hash{rpc}} = { deadline => $req_hash{deadline}, category => $category_name };
+            return $cg_mock->original('_send_request')->($self, $request_data, $category_name);
+        });
+
+    #Controller Mock
+    my $c = Test::MockObject->new();
+    $c->mock(tx => sub { 1 });
+    $c->mock(wsp_error => sub { my %e; @e{qw(type code msg)} = @_[1, 2, 3]; return \%e });
+
+    my $result;
+    $c->mock(send => sub { $result = $_[1]->{json} });
+
+    # check for valid groups
+    foreach my $group (qw(mt5 payment)) {
+        my $req_storage = {
+            method       => 'ping',
+            msg_group => $group,
+            stash_params => [],
+            args         => {},
+        };
+
+        my $start_time = time();
+        $cg_backend->call_rpc($c, $req_storage);
+        $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
+        my $current = $e->{$req_storage->{method}};
+        is $current->{deadline} - $start_time, $timeouts_config->{$current->{category}}, 'Correct timeout selected';
+        is_deeply $result,
+            {
+            ping     => {success => 1},
+            msg_type => 'ping'
+            },
+            'Got correct rpc response';
+    }
+
+    # other methods should use general settings
+    my $req_storage = {
+        method       => 'ping',
+        stash_params => [],
+        args         => {},
+    };
+    my $start_time = time();
+    $cg_backend->call_rpc($c, $req_storage);
+    $cg_backend->_on_message(undef, qq[{"message_id": "$req_id", "response": { "result": {"success": 1}}}]);
+    my $current = $e->{$req_storage->{method}};
+    is $current->{deadline} - $start_time, $timeouts_config->{'general'}, 'Correct timeout selected';
+    is_deeply $result,
+        {
+        ping     => {success => 1},
+        msg_type => 'ping'
+        },
+        'Got correct rpc response';
+
+    $cg_mock->unmock_all();
 };
 
 subtest 'RPC call: request timeout' => sub {

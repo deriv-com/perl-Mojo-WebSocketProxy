@@ -20,7 +20,9 @@ no indirect;
 
 __PACKAGE__->register_type('consumer_groups');
 
-use constant RESPONSE_TIMEOUT => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
+use constant RESPONSE_TIMEOUT             => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
+use constant DEFAULT_CATEGORY_NAME        => 'general';
+use constant REQUIRED_RESPONSE_PARAMETERS => qw(message_id response);
 
 =head1 NAME
 
@@ -50,7 +52,13 @@ Creates object instance of the class
 
 =item * C<redis> - Redis client object (must be compatible with L<Mojo::Redis2>). This argument will override the C<redis_uri> argument.
 
-=item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 300
+=item * C<timeout> - Request timeout, in seconds. If not set, uses the environment variable C<RPC_QUEUE_RESPONSE_TIMEOUT>, or defaults to 30
+
+=item * C<queue_separation_enabled> - Boolean to specify if messages should be assigned to different queus based on their C<msg_group> or only C<general> queue.
+
+=item * C<category_timeout_config> - A hash containing the timeout value for each request category.
+
+    { general => 5, other => 120 }
 
 =back
 
@@ -99,8 +107,8 @@ sub pending_requests {
 sub redis {
     my $self = shift;
     return $self->{redis} //= Mojo::Redis2->new(
-        url             => $self->{redis_uri},
-        encoding        => undef,
+        url      => $self->{redis_uri},
+        encoding => undef,
     );
 }
 
@@ -110,6 +118,28 @@ sub redis {
 
 sub timeout {
     return shift->{timeout} //= RESPONSE_TIMEOUT;
+}
+
+=head2 category_timeout_config
+
+Hash containing the timeout value for each rpc call category.
+
+    { general => 5, other => 120 }    
+
+=cut
+
+sub category_timeout_config {
+    return shift->{category_timeout_config} //= {};
+}
+
+=head2 queue_separation_enabled
+
+Boolean specifying if category separation should be enabled.
+
+=cut
+
+sub queue_separation_enabled {
+    return shift->{queue_separation_enabled} //= 0;
 }
 
 =head2 whoami
@@ -127,7 +157,6 @@ sub whoami {
 
     return $self->{whoami};
 }
-
 
 =head2 call_rpc
 
@@ -163,6 +192,8 @@ called only when there is an response from the remote call.
 
 =item * C<rpc_failure_cb> a subroutine reference to call if the remote call fails. Called with C<< Mojolicious::Controller >>, the rpc_response and C<< $req_storage >>
 
+=item * C<msg_group> - if supplied, the message will be assigned to the Redis channel with the corresponding name. The I<< general >> channel will be used by default if either C<< $msg_type >> is not provided or C<queue_separation_enabled> is 0.
+
 =back
 
 =back
@@ -174,17 +205,22 @@ Returns undef.
 sub call_rpc {
     my ($self, $c, $req_storage) = @_;
 
-    my $rpc_response_cb = $self->get_rpc_response_cb($c, $req_storage);
+    my $rpc_response_cb               = $self->get_rpc_response_cb($c, $req_storage);
     my $before_get_rpc_response_hooks = delete($req_storage->{before_get_rpc_response}) || [];
-    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response})  || [];
-    my $before_call_hooks             = delete($req_storage->{before_call})             || [];
+    my $after_got_rpc_response_hooks  = delete($req_storage->{after_got_rpc_response}) || [];
+    my $before_call_hooks             = delete($req_storage->{before_call}) || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
+    # stream category which message should be assigned to
+    my $msg_group = $self->queue_separation_enabled ? $req_storage->{msg_group} : undef;
+    $msg_group //= DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
-    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage);
+    my $category_timeout = $self->_rpc_category_timeout($msg_group);
+
     my $block_response = delete($req_storage->{block_response});
-    $self->request($request_data)->then(
+    my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
+    $self->request($request_data, $msg_group, $category_timeout)->then(
         sub {
             my ($message) = @_;
 
@@ -197,12 +233,15 @@ sub call_rpc {
             foreach my $hook ($after_got_rpc_response_hooks->@*) { $hook->($c, $req_storage, $result) }
 
             my $api_response;
-            if ($result->is_error){
-                $rpc_failure_cb->($c, $result, $req_storage, {
-                    code    => $result->error_code,
-                    message => $result->error_message,
-                    type    => 'CallError',
-                }) if $rpc_failure_cb;
+            if ($result->is_error) {
+                $rpc_failure_cb->(
+                    $c, $result,
+                    $req_storage,
+                    {
+                        code    => $result->error_code,
+                        message => $result->error_message,
+                        type    => 'CallError',
+                    }) if $rpc_failure_cb;
 
                 return Future->done if $block_response;
                 $api_response = $c->wsp_error($msg_type, 'CallError', 'Sorry, an error occurred while processing your request.');
@@ -216,7 +255,7 @@ sub call_rpc {
 
             return Future->done;
         }
-        )->catch(
+    )->catch(
         sub {
             my $error = shift;
             my $api_response;
@@ -224,7 +263,10 @@ sub call_rpc {
             return Future->done unless $c && $c->tx;
 
             my $err_type = $error eq 'Timeout' ? $error : "RedisError";
-            $rpc_failure_cb->($c, undef, $req_storage, {
+            $rpc_failure_cb->(
+                $c, undef,
+                $req_storage,
+                {
                     code    => $err_type,
                     message => $error,
                     type    => $err_type,
@@ -232,7 +274,7 @@ sub call_rpc {
 
             $api_response = $c->wsp_error($msg_type, 'WrongResponse', 'Sorry, an error occurred while processing your request.');
 
-            return Future->done  if $block_response || !$api_response;
+            return Future->done if $block_response || !$api_response;
 
             $c->send({json => $api_response}, $req_storage);
         })->retain;
@@ -242,11 +284,15 @@ sub call_rpc {
 
 =head2 request
 
-Sends request to backend service. The method accepts single unnamed argument:
+Sends request to backend service. The method accepts following arguments:
 
 =over 4
 
 =item * C<request_data> - an C<arrayref> containing data for the item which is going to be put into redis stream.
+
+=item * C<$category_name> - this will be passed to C<_send_request> to specify which redis category this message belongs to.
+
+=item * C<category_timeout> - timeout value for this specific call (differs based on category)
 
 =back
 
@@ -257,7 +303,7 @@ And it'll be marked as failed in case of request timeout or in case of error put
 =cut
 
 sub request {
-    my ($self, $request_data) = @_;
+    my ($self, $request_data, $category_name, $category_timeout) = @_;
 
     my $complete_future = $self->loop->new_future;
 
@@ -270,9 +316,8 @@ sub request {
 
     push @$request_data, ('message_id' => $msg_id);
 
-    my $sent_future = $self->_send_request($request_data);
-
-    return Future->wait_any($self->loop->timeout_future(after => $self->timeout), Future->needs_all($complete_future, $sent_future));
+    my $sent_future = $self->_send_request($request_data, $category_name);
+    return Future->wait_any($self->loop->timeout_future(after => $category_timeout), Future->needs_all($complete_future, $sent_future));
 }
 
 # We need to provide uniqueness inside every instance of Mojo::WebSocketProxy::Backend::ConsumerGroups,
@@ -285,19 +330,22 @@ sub _next_request_id {
     return ++$self->{request_seq_id};
 }
 
+sub _rpc_category_timeout {
+    my ($self, $category_name) = @_;
+
+    return $self->category_timeout_config->{$category_name} // $self->timeout;
+}
+
 sub _send_request {
-    my ($self, $request_data) = @_;
+    my ($self, $request_data, $category_name) = @_;
 
     my $f = $self->loop->new_future;
     $self->redis->_execute(
-        xadd => XADD => (
-            'general',
-            ('MAXLEN', '~', '100000'),
-            '*',
-            $request_data->@*
-        ),
+        xadd => XADD => ($category_name, qw(MAXLEN ~ 100000), '*', $request_data->@*),
         sub {
             my ($redis, $err) = @_;
+
+            return $f if $f->is_ready;
 
             return $f->fail($err) if $err;
 
@@ -336,13 +384,14 @@ sub _on_message {
         return;
     }
 
-    my $missed_param;
-    if(
-        ref $message ne 'HASH' 
-        || !$message->{$missed_param = "message_id"} 
-        || !$message->{$missed_param = "response"}
-    ) {
-        $log->errorf("Failed to process response: '%s' does not exist, original message content was %s", $missed_param, $raw_message);
+    if (ref $message ne 'HASH') {
+        $log->errorf("Failed to process response: Invalid message type got: %s, want: HASH", ref $message);
+        return;
+    }
+
+    my (@missing_params) = grep { !exists $message->{$_} } REQUIRED_RESPONSE_PARAMETERS;
+    if (@missing_params) {
+        $log->errorf("Failed to process response: '%s' are missing, original message content was %s", join(",", @missing_params), $raw_message);
         return;
     }
 
@@ -356,23 +405,23 @@ sub _on_message {
 }
 
 sub _prepare_request_data {
-    my ($self, $c, $req_storage) = @_;
+    my ($self, $c, $req_storage, $req_timeout) = @_;
 
     $req_storage->{call_params} ||= {};
 
-    my $method = $req_storage->{method};
+    my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
-    my $params = $self->make_call_params($c, $req_storage);
+    my $params       = $self->make_call_params($c, $req_storage);
     my $stash_params = $req_storage->{stash_params};
 
     my $request_data = [
         rpc      => $method,
         who      => $self->whoami,
-        deadline => time + RESPONSE_TIMEOUT,
+        deadline => time + $req_timeout,
 
-        $params  ?  (args   => encode_json_utf8($params))        : (),
-        $stash_params   ?  (stash  => encode_json_utf8($stash_params))  : (),
+        $params       ? (args  => encode_json_utf8($params))       : (),
+        $stash_params ? (stash => encode_json_utf8($stash_params)) : (),
     ];
 
     return $msg_type, $request_data;
