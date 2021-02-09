@@ -91,6 +91,9 @@ sub register {
             return $dispatcher_config;
         });
 
+    # Subscribe on notification about termination of worker.
+    Mojo::IOLoop->singleton->once(finish => $config->{before_shutdown}) if $config->{before_shutdown};
+
     return;
 }
 
