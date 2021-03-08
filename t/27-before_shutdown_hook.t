@@ -13,20 +13,16 @@ subtest "before shutdown hook" => sub {
         use base 'Mojolicious';
 
         sub startup {
-             my $self = shift;
-             $self->plugin(
-                 'web_socket_proxy' => {
-                    actions => [
-                        ['success'],
-                    ],
-                    base_path => '/api',
-                    url => $ENV{T_TestWSP_RPC_URL},
+            my $self = shift;
+            $self->plugin(
+                'web_socket_proxy' => {
+                    actions         => [['success'],],
+                    base_path       => '/api',
+                    url             => $ENV{T_TestWSP_RPC_URL},
                     before_shutdown => sub { $main::hook_was_called++ },
-                 }
-             );
+                });
         }
     };
-
 
     my $t = Test::Mojo->new('t::MyApp');
 
