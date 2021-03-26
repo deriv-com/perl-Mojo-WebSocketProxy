@@ -14,13 +14,13 @@ sub test_wsp(&$;@) {
     my ($code, $app_class, $responder_class) = @_;
 
     my $rpc_port = empty_port;
-    my $rpc_url = "http://127.0.0.1:$rpc_port/rpc/";
+    my $rpc_url  = "http://127.0.0.1:$rpc_port/rpc/";
     local $ENV{T_TestWSP_RPC_URL} = $rpc_url;
 
     $responder_class //= "t::SampleRPC";
 
     my $rpc = Mojo::Server::Daemon->new(
-        app => $responder_class->new,
+        app    => $responder_class->new,
         listen => [$rpc_url],
     );
     $rpc->start;
@@ -33,6 +33,6 @@ sub test_wsp(&$;@) {
     $t->app($app);
 
     $code->($t);
-};
+}
 
 1;
