@@ -30,7 +30,7 @@ sub register {
         });
     $app->helper(
         wsp_error => sub {
-            shift; # $c
+            shift;    # $c
             my ($msg_type, $code, $message, $details) = @_;
 
             my $error = {
@@ -72,7 +72,7 @@ sub register {
         foreach my $name (keys %$backend_configs) {
             my %args = %{$backend_configs->{$name}};
             my $type = delete($args{type}) // 'jsonrpc';
-            my $key = $default_backend eq $name ? 'default' : $name;
+            my $key  = $default_backend eq $name ? 'default' : $name;
             $dispatcher_config->add_backend($key => Mojo::WebSocketProxy::Backend->backend_instance($type => %args));
         }
     }
@@ -82,14 +82,16 @@ sub register {
     $dispatcher_config->add_backend(
         $jsonrpc_backend_key => Mojo::WebSocketProxy::Backend->backend_instance(
             jsonrpc => url => delete $config->{url},
-        )
-    );
+        ));
 
     $app->helper(
         wsp_config => sub {
             my $c = shift;
             return $dispatcher_config;
         });
+
+    # Subscribe on notification about termination of worker.
+    Mojo::IOLoop->singleton->once(finish => $config->{before_shutdown}) if $config->{before_shutdown};
 
     return;
 }

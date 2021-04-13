@@ -81,7 +81,7 @@ sub call_rpc {
 
     $url .= $req_storage->{method};
 
-    my $method = $req_storage->{method};
+    my $method   = $req_storage->{method};
     my $msg_type = $req_storage->{msg_type} ||= $req_storage->{method};
 
     $req_storage->{call_params} ||= {};
@@ -99,7 +99,7 @@ sub call_rpc {
 
     my $callobj = {
         # enough for short-term uniqueness
-        id => join('_', $$, $request_number++, time, (0 + [])),
+        id     => join('_', $$, $request_number++, time, (0 + [])),
         method => $method,
         params => $self->make_call_params($c, $req_storage),
     };
