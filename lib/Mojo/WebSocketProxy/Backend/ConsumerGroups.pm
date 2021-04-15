@@ -211,16 +211,15 @@ sub call_rpc {
     my $before_call_hooks             = delete($req_storage->{before_call})             || [];
     my $rpc_failure_cb                = delete($req_storage->{rpc_failure_cb});
     # stream category which message should be assigned to
-    my $msg_group = $self->queue_separation_enabled ? $req_storage->{msg_group} : undef;
-    $msg_group //= DEFAULT_CATEGORY_NAME;
+    $req_storage->{msg_group} = $self->queue_separation_enabled && $req_storage->{msg_group} ? $req_storage->{msg_group} : DEFAULT_CATEGORY_NAME;
 
     foreach my $hook ($before_call_hooks->@*) { $hook->($c, $req_storage) }
 
-    my $category_timeout = $self->_rpc_category_timeout($msg_group);
+    my $category_timeout = $self->_rpc_category_timeout($req_storage->{msg_group});
 
     my $block_response = delete($req_storage->{block_response});
     my ($msg_type, $request_data) = $self->_prepare_request_data($c, $req_storage, $category_timeout);
-    $self->request($request_data, $msg_group, $category_timeout)->then(
+    $self->request($request_data, $req_storage->{msg_group}, $category_timeout)->then(
         sub {
             my ($message) = @_;
 
