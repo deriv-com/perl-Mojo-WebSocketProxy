@@ -30,4 +30,5 @@ on test => sub {
     requires 'Test::MockObject';
     requires 'Test::More', '0.98';
     requires 'Test::TCP';
+    requires 'Test::Warnings';
 };
