@@ -15,8 +15,6 @@ requires 'perl', '5.024';
 requires 'Mojo::Redis2';
 requires 'Data::UUID';
 
-requires 'Job::Async', 0;
-
 on configure => sub {
     requires 'ExtUtils::MakeMaker', '7.1101';
 };
