@@ -14,6 +14,7 @@ requires 'Syntax::Keyword::Try', '>= 0.04';
 requires 'perl', '5.024';
 requires 'Mojo::Redis2';
 requires 'Data::UUID';
+requires 'Log::Any';
 
 on configure => sub {
     requires 'ExtUtils::MakeMaker', '7.1101';
