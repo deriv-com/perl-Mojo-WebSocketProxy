@@ -376,10 +376,10 @@ sub _on_message {
 
     try {
         $message = decode_json_utf8($raw_message);
-	$message->{args} = decode_json_utf8( $message->{args} );
-	$message->{response} = decode_json_utf8( $message->{response} );
-	$message->{response} = $message->{response}{response};
-	$message->{args} = $message->{args}{args};
+        $message->{args} = decode_json_utf8( $message->{args} );
+        $message->{response} = decode_json_utf8( $message->{response} );
+        $message->{response} = $message->{response}{response};
+        $message->{args} = $message->{args}{args};
     } catch {
         my $err = $@;
 
