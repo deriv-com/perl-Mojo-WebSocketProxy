@@ -21,7 +21,7 @@ no indirect;
 __PACKAGE__->register_type('consumer_groups');
 
 use constant RESPONSE_TIMEOUT             => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
-use constant DEFAULT_CATEGORY_NAME        => 'general';
+use constant DEFAULT_CATEGORY_NAME        => 'myriad.service.deriv.general.states_list.rpc/request';
 use constant REQUIRED_RESPONSE_PARAMETERS => qw(message_id response);
 
 =head1 NAME
@@ -364,7 +364,7 @@ Subscription will be done only once within first request to backend server.
 
 sub wait_for_messages {
     my ($self) = @_;
-    $self->{already_waiting} //= $self->redis->subscribe([$self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
+    $self->{already_waiting} //= $self->redis->subscribe(['myriad.'.$self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
 
     return;
 }
