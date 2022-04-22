@@ -249,6 +249,7 @@ sub call_rpc {
             }
 
             $api_response = $rpc_response_cb->($result->result);
+
             return Future->done if $block_response || !$api_response;
             $c->send({json => $api_response}, $req_storage);
 
@@ -364,7 +365,8 @@ Subscription will be done only once within first request to backend server.
 
 sub wait_for_messages {
     my ($self) = @_;
-    $self->{already_waiting} //= $self->redis->subscribe(['myriad.'.$self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
+    $self->{already_waiting} //=
+        $self->redis->subscribe(['myriad.' . $self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
 
     return;
 }
@@ -375,11 +377,11 @@ sub _on_message {
     my $message = {};
 
     try {
-        $message = decode_json_utf8($raw_message);
-        $message->{args} = decode_json_utf8( $message->{args} );
-        $message->{response} = decode_json_utf8( $message->{response} );
-        $message->{response} = $message->{response}{response};
-        $message->{args} = $message->{args}{args};
+        $message             = decode_json_utf8($raw_message);
+        $message->{args}     = decode_json_utf8($message->{args});
+        $message->{response} = decode_json_utf8($message->{response});
+        $message->{response} = decode_json_utf8($message->{response});
+        $message->{response} = {result => $message->{response}{response}};
     } catch {
         my $err = $@;
 
