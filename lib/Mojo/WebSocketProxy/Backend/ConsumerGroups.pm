@@ -21,7 +21,7 @@ no indirect;
 __PACKAGE__->register_type('consumer_groups');
 
 use constant RESPONSE_TIMEOUT             => $ENV{RPC_QUEUE_RESPONSE_TIMEOUT} // 30;
-use constant DEFAULT_CATEGORY_NAME        => 'myriad.service.deriv.general.states_list.rpc/request';
+use constant DEFAULT_CATEGORY_NAME        => 'general';
 use constant REQUIRED_RESPONSE_PARAMETERS => qw(message_id response);
 
 =head1 NAME
@@ -366,7 +366,8 @@ Subscription will be done only once within first request to backend server.
 sub wait_for_messages {
     my ($self) = @_;
     $self->{already_waiting} //=
-        $self->redis->subscribe(['myriad.' . $self->whoami], $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
+        $self->redis->subscribe(['myriad.' . $self->whoami, $self->whoami],
+        $self->redis->curry::weak::on(message => $self->curry::weak::_on_message));
 
     return;
 }
@@ -377,11 +378,12 @@ sub _on_message {
     my $message = {};
 
     try {
-        $message             = decode_json_utf8($raw_message);
-        $message->{args}     = decode_json_utf8($message->{args});
-        $message->{response} = decode_json_utf8($message->{response});
-        $message->{response} = decode_json_utf8($message->{response});
-        $message->{response} = {result => $message->{response}{response}};
+        $message = decode_json_utf8($raw_message);
+        if (ref $message->{args} ne 'HASH') {
+            $message->{args}     = decode_json_utf8($message->{args});
+            $message->{response} = decode_json_utf8($message->{response});
+            $message->{response} = {result => $message->{response}{response}};
+        }
     } catch {
         my $err = $@;
 
