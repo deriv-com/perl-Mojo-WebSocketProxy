@@ -14,8 +14,7 @@ requires 'Syntax::Keyword::Try', '>= 0.04';
 requires 'perl', '5.024';
 requires 'Mojo::Redis2';
 requires 'Data::UUID';
-
-requires 'Job::Async', 0;
+requires 'Log::Any';
 
 on configure => sub {
     requires 'ExtUtils::MakeMaker', '7.1101';
@@ -30,4 +29,5 @@ on test => sub {
     requires 'Test::MockObject';
     requires 'Test::More', '0.98';
     requires 'Test::TCP';
+    requires 'Test::Warnings';
 };
