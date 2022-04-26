@@ -249,7 +249,6 @@ sub call_rpc {
             }
 
             $api_response = $rpc_response_cb->($result->result);
-
             return Future->done if $block_response || !$api_response;
             $c->send({json => $api_response}, $req_storage);
 
