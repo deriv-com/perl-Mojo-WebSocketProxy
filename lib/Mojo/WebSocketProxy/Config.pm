@@ -69,6 +69,17 @@ sub add_backend {
     return;
 }
 
+sub add_dispatcher {
+    my ($self, $dispatcher) = @_;
+
+    die 'Custom dipatcher should have dispatch method' 
+            unless blessed($dispatcher) and $dispatcher->can('dispatch');
+    
+    $self->{dispatcher} = $dispatcher;
+
+    return;
+}
+
 1;
 
 __END__

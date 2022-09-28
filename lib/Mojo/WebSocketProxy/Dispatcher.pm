@@ -232,9 +232,8 @@ sub dispatch {
     my $log = $c->app->log;
     $log->debug("websocket got json " . $c->dumper($args));
 
-    my $actions = $c->wsp_config->{actions};
-    if (blessed $actions && $actions->can('dispatch')) {
-        return $actions->dipatch($actions);
+    if ($c->wsp_config->{dispatcher}) {
+        return Future::Mojo->wrap($c->wsp_config->{dispatcher}->dipatch($actions));
     }
 
     my ($action) =

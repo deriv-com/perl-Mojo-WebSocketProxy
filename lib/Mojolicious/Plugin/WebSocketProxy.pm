@@ -3,6 +3,8 @@ package Mojolicious::Plugin::WebSocketProxy;
 use strict;
 use warnings;
 
+use Scalar::Util qw(blessed);
+
 use Mojo::Base 'Mojolicious::Plugin';
 use Mojo::WebSocketProxy::Backend;
 use Mojo::WebSocketProxy::Config;
@@ -55,11 +57,14 @@ sub register {
         $_->websocket('/')->to('Dispatcher#open_connection', namespace => 'Mojo::WebSocketProxy');
     }
 
-    my $actions           = delete $config->{actions};
     my $dispatcher_config = Mojo::WebSocketProxy::Config->new;
     $dispatcher_config->init($config);
+    # if custom dispatcher is provided, we will use it
+    if (my $dispatcher = delete $config->{dispatcher}) {
+        $dispatcher_config->add_dispatcher($dispatcher);
+    } elsif (my $actions = delete $config->{actions}) {
+        die 'Invalid format of actions parameter' unless ref $actions eq 'ARRAY';
 
-    if (ref $actions eq 'ARRAY') {
         for (my $i = 0; $i < @$actions; $i++) {
             $dispatcher_config->add_action($actions->[$i], $i);
         }
