@@ -50,11 +50,11 @@ Revision history for Perl module Mojo::WebSocketProxy
 0.04      2017-02-21 02:16:06+00:00 UTC
     - Switch to dzil
 
-0.03 Thu Jun  9 15:50:00 2016
+0.03 2016-06-09 15:50:00
     - Use before send hook to check response size
 
-0.02 Thu Jun  9 09:28:00 2016
+0.02 2016-06-09 09:28:00
     - Minor fixes
 
-0.01 Thu Jun  2 06:02:18 2016
+0.01 2016-0602 06:02:18
     - First version, released on an unsuspecting world.
