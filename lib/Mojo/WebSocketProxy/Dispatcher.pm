@@ -293,8 +293,6 @@ Handle message - parse and dispatch request messages.
 Dispatching action and forward to RPC server. Note that all
 incoming JSON messages are first normalised using
 L<NFC|https://www.w3.org/International/articles/unicode-migration/#normalization>.
- 
-
 
 =head2 before_forward
 

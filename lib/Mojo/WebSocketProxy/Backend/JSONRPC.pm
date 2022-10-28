@@ -23,7 +23,7 @@ my $request_number = 0;
 
 =head2 call_rpc
 
-Description: Makes a remote call to a  process  returning the result to the client in JSON format. 
+Description: Makes a remote call to a  process  returning the result to the client in JSON format.
 Before, After and error actions can be specified using call backs.
 It takes the following arguments 
 
@@ -31,8 +31,8 @@ It takes the following arguments
 
 =item - $c  : L<Mojolicious::Controller>
 
-=item - $req_storage A hashref of attributes stored with the request.  This routine uses some of the,  
-following named arguments. 
+=item - $req_storage A hashref of attributes stored with the request.  This routine uses some of the
+following named arguments.
 
 =over 4 
 
@@ -40,11 +40,11 @@ following named arguments.
 
 =item - method, The name of the method at the remote end (this is appened to C<< $request_storage->{url} >> )
 
-=item - msg_type, a name for this method if not supplied C<method> is used. 
+=item - msg_type, a name for this method if not supplied C<method> is used.
 
 =item - call_params, a hashref of arguments on top of C<req_storage> to send to remote method. This will be suplemented with C<< $req_storage->{args} >>
-added as an C<args> key and be merged with C<< $req_storage->{stash_params} >> with stash_params overwriting any matching 
-keys in C<call_params>. 
+added as an C<args> key and be merged with C<< $req_storage->{stash_params} >> with stash_params overwriting any matching
+keys in C<call_params>.
 
 =item - rpc_response_callback,  If supplied this will be run with C<< Mojolicious::Controller >> instance the rpc_response and C<< $req_storage >>. 
 B<Note:> if C<< rpc_response_callback >> is supplied the success and error callbacks are not used. 
