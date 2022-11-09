@@ -1,5 +1,7 @@
 Revision history for Perl module Mojo::WebSocketProxy
 {{$NEXT}}
+
+0.14      2022-11-09 07:45:53+00:00 UTC
     - Move Mojo::WebSocketProxy::Backend::JobAsync and Mojo::WebSocketProxy::Backend::ConsumerGroups out
     - Add support for separating messages to different channels with
       different timeout values for each channel.
