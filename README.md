@@ -1,26 +1,12 @@
-# perl-Mojo-WebSocketProxy
-
-[![Build Status](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy.svg?branch=master)](https://travis-ci.org/binary-com/perl-Mojo-WebSocketProxy)
-[![codecov](https://codecov.io/gh/binary-com/perl-Mojo-WebSocketProxy/branch/master/graph/badge.svg)](https://codecov.io/gh/binary-com/perl-Mojo-WebSocketProxy)
-
-#### INSTALLATION
-
-To install this module, run the following commands:
-
-	perl Makefile.PL
-	make
-	make test
-	make install
-
-#### NAME
+# NAME
 
 Mojo::WebSocketProxy - WebSocket proxy for JSON-RPC 2.0 server
 
-#### SYNOPSYS
+# SYNOPSIS
 
      # lib/your-application.pm
 
-     use base 'Mojolicious';
+     use parent 'Mojolicious';
 
      sub startup {
          my $self = shift;
@@ -39,7 +25,7 @@ Or to manually call RPC server:
 
      # lib/your-application.pm
 
-     use base 'Mojolicious';
+     use parent 'Mojolicious';
 
      sub startup {
          my $self = shift;
@@ -51,8 +37,8 @@ Or to manually call RPC server:
                          {
                              instead_of_forward => sub {
                                  shift->call_rpc({
-                                     args => $args,
-                                     method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
+                                     args   => [ qw(args here) ],
+                                     method => 'json_key', # it'll call 'http://rpc-host.com:8080/json_key'
                                      rpc_response_cb => sub {...}
                                  });
                              }
@@ -65,7 +51,7 @@ Or to manually call RPC server:
          );
     }
 
-#### DESCRIPTION
+# DESCRIPTION
 
 Using this module you can forward WebSocket-JSON requests to RPC server.
 
@@ -74,7 +60,7 @@ Request storage have RPC call parameters in $req\_storage->{call\_params}.
 It copies message args to $req\_storage->{call\_params}->{args}.
 You can use Mojolicious stash to store data between messages in one connection.
 
-#### Proxy responses
+# Proxy responses
 
 The plugin sends websocket messages to client with RPC response data.
 If RPC reponse looks like this:
@@ -99,64 +85,15 @@ Plugin returns common response like this:
         msg_type  => $msg_type,
     }
 
-You can customize ws porxy response using 'response' hook.
+You can customize ws proxy response using 'response' hook.
 
-#### Sequence Diagram
-
-![Alt text](https://g.gravizo.com/source/ws_proxy?https%3A%2F%2Fraw.githubusercontent.com%2Fbinary-com%2Fperl-Mojo-WebSocketProxy%2Fmaster%2FREADME.md)
-<details> 
-<summary></summary>
-ws_proxy
-@startuml;
-title Websocket Proxy
-
-participant Client
-
-Client->Websocket:Initiate connection
-Client->Websocket:Send Message
-
-note over Websocket: before_forward
-note over Websocket: instead_of_forward
-
-Websocket->Websocket: instead_of_forward does not forward to rpc and returns response back from ws if its valid one
-
-Websocket->Client: send response (only if instead_of_forward)
-
-note over Websocket: before_call
-
-Websocket->RPC: RPC request
-
-note over Websocket: after_forward
-note over Websocket: after_dispatch
-
-note over RPC: processing
-
-note over Websocket: before_got_rpc_response
-
-RPC->Websocket: RPC response
-
-note over Websocket: after_got_rpc_response
-note over Websocket: success/error
-note over Websocket: response
-note over Websocket: before_send_api_response
-note over Websocket: send
-
-Websocket->Client:send response back
-
-note over Websocket: after_send_api_response
-
-Client->Websocket:Close Websocket connection
-@enduml
-ws_proxy
-</details>
-
-#### Plugin parameters
+# Plugin parameters
 
 The plugin understands the following parameters.
 
-##### actions
+## actions
 
-A pointer to array of action details, which contain stash\_params,
+A reference to array of action details, which contain stash\_params,
 request-response callbacks, other call parameters.
 
     $self->plugin(
@@ -167,125 +104,162 @@ request-response callbacks, other call parameters.
             ]
         });
 
-##### before\_forward
+## backends
+
+An optional reference to a hash of alternate backends to pick for certain RPC
+calls. Hash keys are names of backends, and values are themselves hash
+references containing backend parameters. Currently only the `url` key is
+supported.
+
+    backends => {
+        server2 => {url => "http://server2.rpc-host:8080/"},
+    }
+
+Alternate backends are selected by using the `backend` action option.
+
+## rpc\_failure\_cb
+
+A subroutine reference to call when the RPC call fails at the HTTP level.
+Called with `Mojolicious::Controller` the rpc\_response
+and `$req_storage`
+
+A default rpc\_failure\_cb could be provided in the startup sub routine
+
+     sub startup {
+         my $self = shift;
+         $self->plugin(
+             'web_socket_proxy' => {
+                 actions => [
+                     ['json_key', {some_param => 'some_value'}]
+                 ],
+                 base_path => '/api',
+                 url => 'http://rpc-host.com:8080/',
+                 rpc_failure_cb => sub {
+                     my ($c, $res, $req_storage, $error) = @_;
+                     warn "RPC call failed";
+                     return undef;
+                 }
+
+             }
+         );
+    }
+
+Call specific sub routine could be specified in call\_rpc arguments
+
+    $c->call_rpc({
+        args           => $args,
+        origin_args    => $req_storage->{origin_args},
+        method         => 'ticks_history',
+        rpc_failure_cb => sub {
+            if ($worker) {
+                warn "Something went wrong with this rpc call : " . $method;
+                $worker->unregister;
+            }
+        },
+    }
+
+## before\_forward
 
     before_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hook which will run after request is dispatched and before to start preparing RPC call.
+Global hooks which will run after request is dispatched and before to start preparing RPC call.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client,
 without forward action to RPC. To call RPC every hook should return empty or undefined value.
 It's good place to some validation or subscribe actions.
 
-#### instead\_of\_forward (global)
-
-    instead_of_forward => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
-
-Use this hook if you don't want dispatcher to call RPC and want to handle request
-in websocket itself. It's not good practice to use it as global hook because if
-if you return response from sub passed then it will return same response for each
-call. [Read more](#instead-of-forward)
-
-#### before\_call (global)
-
-    before_call => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
-
-Global hook which will run just before making rpc call.
-
-##### after\_forward (global)
+## after\_forward
 
     after_forward => [sub { my ($c, $result, $req_storage) = @_; ... }, sub {...}]
 
-Global hook which will run after every forwarded RPC call done.
+Global hooks which will run after every forwarded RPC call done.
 Or even forward action isn't running.
 It can view or modify result value from 'before\_forward' hook.
 It'll run every hook or until any hook returns some non-empty result.
 If returns any hash ref then that value will be JSON encoded and send to client.
 
-##### after\_dispatch (global)
+## after\_dispatch
 
     after_dispatch => [sub { my $c = shift; ... }, sub {...}]
 
-Global hook which will run at the end of request handling.
+Global hooks which will run at the end of request handling.
 
-##### before\_get\_rpc\_response (global)
+## before\_get\_rpc\_response (global)
 
     before_get_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hook which will run when asynchronous RPC call is answered.
+Global hooks which will run when asynchronous RPC call is answered.
 
-##### after\_got\_rpc\_response (global)
+## after\_got\_rpc\_response (global)
 
     after_got_rpc_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hook which will run after checked that response exists.
+Global hooks which will run after checked that response exists.
 
-##### before\_send\_api\_response (global)
+## before\_send\_api\_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage, $api_response) = @_; ... }, sub {...}]
 
-Global hook which will run immediately before send API response.
+Global hooks which will run immediately before send API response.
 
-##### after\_sent\_api\_response (global)
+## after\_sent\_api\_response (global)
 
     before_send_api_response => [sub { my ($c, $req_storage) = @_; ... }, sub {...}]
 
-Global hook which will run immediately after sent API response back to client.
+Global hooks which will run immediately after sent API response.
 
-##### base\_path
+## base\_path
 
 API url for make route.
 
-##### stream\_timeout
+## stream\_timeout
 
-See ["timeout" in Mojo::IOLoop::Stream](https://metacpan.org/pod/Mojo::IOLoop::Stream#timeout)
+See ["timeout" in Mojo::IOLoop::Stream](https://metacpan.org/pod/Mojo%3A%3AIOLoop%3A%3AStream#timeout)
 
-##### max\_connections
+## max\_connections
 
-See ["max\_connections" in Mojo::IOLoop](https://metacpan.org/pod/Mojo::IOLoop#max_connections)
+See ["max\_connections" in Mojo::IOLoop](https://metacpan.org/pod/Mojo%3A%3AIOLoop#max_connections)
 
-##### max\_response\_size
+## max\_response\_size
 
 Returns error if RPC response size is over value.
 
-##### opened\_connection
+## opened\_connection
 
 Callback for doing something once after connection is opened
 
-##### finish\_connection
+## finish\_connection
 
 Callback for doing something every time when connection is closed.
 
-##### url
+## url
 
 RPC host url - store url string or function to set url dynamically for manually RPC calls.
 When using forwarded call then url storing in request storage.
 You can store url in every action options, or make it at before\_forward hook.
 
-#### Actions options
+# Actions options
 
-##### stash\_params
+## stash\_params
 
     stash_params => [qw/ stash_key1 stash_key2 /]
 
-Use this if you want to send specified parameters from Mojolicious $c->stash to RPC.
-RPC will receive this as part of call params.
-
+Will send specified parameters from Mojolicious $c->stash.
 You can store RPC response data to Mojolicious stash returning data like this:
 
     rpc_response => {
-        stash => {..} # data to store in Mojolicious stash
+        stast => {..} # data to store in Mojolicious stash
         response_key1 => response_value1, # response to API client
         response_key2 => response_value2
     }
 
-##### success
+## success
 
     success => sub { my ($c, $rpc_response) = @_; ... }
 
 Hook which will run if RPC returns success value.
 
-##### error
+## error
 
     error => sub { my ($c, $rpc_response) = @_; ... }
 
@@ -293,41 +267,29 @@ Hook which will run if RPC returns value with error key, e.g.
 
     { result => { error => { code => 'some_error' } } }
 
-##### response
+## response
 
     response => sub { my ($c, $rpc_response) = @_; ... }
 
 Hook which will run every time when success or error callbacks is running.
 It good place to modify API response format.
 
-#### Instead of forward
+## backend
 
-This hook is generally used if you don't want to forward request to RPC and want
-to handle it within websocket itself, for example like send back server time.
+Selects an alternative backend to forward requests onto, rather than the
+default.
 
-Another case where its useful is if you don't want to send response to rpc url
-provided in global scope and want to forward to separate RPC service (useful if
-you have multiple RPC service to handle different type of request)
+    backend => "server2"
 
-```
- instead_of_forward => sub {
-     shift->call_rpc({
-         url  => 'some other rpc url',
-         args => $args,
-         method => $rpc_method, # it'll call 'http://rpc-host.com:8080/rpc_method'
-         rpc_response_cb => sub {...}
-     });
-```
+# SEE ALSO
 
-#### SEE ALSO
+[Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious%3A%3APlugin%3A%3AWebSocketProxy),
+[Mojo::WebSocketProxy](https://metacpan.org/pod/Mojo%3A%3AWebSocketProxy)
+[Mojo::WebSocketProxy::Backend](https://metacpan.org/pod/Mojo%3A%3AWebSocketProxy%3A%3ABackend),
+[Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo%3A%3AWebSocketProxy%3A%3ADispatcher),
+[Mojo::WebSocketProxy::Config](https://metacpan.org/pod/Mojo%3A%3AWebSocketProxy%3A%3AConfig)
+[Mojo::WebSocketProxy::Parser](https://metacpan.org/pod/Mojo%3A%3AWebSocketProxy%3A%3AParser)
 
-[Mojolicious::Plugin::WebSocketProxy](https://metacpan.org/pod/Mojolicious::Plugin::WebSocketProxy),
-[Mojo::WebSocketProxy](https://metacpan.org/pod/Mojo::WebSocketProxy)
-[Mojo::WebSocketProxy::CallingEngine](https://metacpan.org/pod/Mojo::WebSocketProxy::CallingEngine),
-[Mojo::WebSocketProxy::Dispatcher](https://metacpan.org/pod/Mojo::WebSocketProxy::Dispatcher),
-[Mojo::WebSocketProxy::Config](https://metacpan.org/pod/Mojo::WebSocketProxy::Config)
-[Mojo::WebSocketProxy::Parser](https://metacpan.org/pod/Mojo::WebSocketProxy::Parser)
-
-#### COPYRIGHT AND LICENSE
+# COPYRIGHT AND LICENSE
 
 Copyright (C) 2016 binary.com
