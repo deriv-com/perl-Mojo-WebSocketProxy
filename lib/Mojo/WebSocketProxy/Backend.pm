@@ -96,7 +96,13 @@ sub make_call_params {
     $call_params->{args} = $args;
 
     if (defined $stash_params) {
-        $call_params->{$_} = $c->stash($_) for @$stash_params;
+        for my $param (@$stash_params) {
+            $call_params->{$param} = $c->stash($param);
+
+            if (exists $c->stash('rpc_storage')->{$param}) {
+                $call_params->{$param} = $c->stash('rpc_storage')->{$param};
+            }
+        }
     }
 
     return $call_params;
