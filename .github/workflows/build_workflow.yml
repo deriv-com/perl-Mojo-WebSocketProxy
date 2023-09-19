@@ -1,18 +1,32 @@
+
 name: Build workflow
 run-name: Build workflow
-on: [push]
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
 jobs:
-  Explore-GitHub-Actions:
+  build:
     runs-on: ubuntu-latest
+    container:
+      image: debian:bullseye
     steps:
-      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
-      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
-      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
-      - name: Check out repository code
-        uses: actions/checkout@v3
-      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
-      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
-      - name: List files in the repository
-        run: |
-          ls ${{ github.workspace }}
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+    - name: Install Perl packages
+      run: |
+        apt-get update && apt-get install -y cpanminus make gcc openssl libssl-dev zlib1g-dev git
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/checkout@v4
+    - name: Install dzil
+      run: cpanm --notest Dist::Zilla Dist::Zilla::App::Command::cover App::cpm Devel::Cover::Report::Codecov https://cpan.metacpan.org/authors/id/S/SR/SRI/Mojolicious-7.29.tar.gz https://cpan.metacpan.org/authors/id/B/BI/BINGOS/ExtUtils-MakeMaker-7.30.tar.gz
+    - name: Install dzil author deps
+      run: cpm install --show-build-log-on-failure -w 2 --mirror=http://cpan.cpantesters.org/ -g $(dzil authordeps --missing)
+    - name: Install distribution deps
+      run: cpm install --show-build-log-on-failure -w 2 --mirror=http://cpan.cpantesters.org/ -g $(dzil listdeps --author --missing)
+    - name: Run smoke test
+      run: dzil smoke --release --author
+    - name: Run coverage test
+      run: dzil cover -test -report codecov
+    - name: Run extended author test
+      run: dzil xtest
