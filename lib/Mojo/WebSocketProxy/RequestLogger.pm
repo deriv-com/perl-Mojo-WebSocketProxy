@@ -20,7 +20,7 @@ method clear_context {
 
 # Method to log messages with various log levels
 method log_message($level, $message) {
-    $log->adapter->set_context($req_storage->{correlation_id});
+    $log->adapter->set_context($req_storage->{context});
     $log->$level($message);
     $log->adapter->clear_context;
 }

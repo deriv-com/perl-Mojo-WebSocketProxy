@@ -123,7 +123,8 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
-    $req_storage->{correlation_id} = UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4);
+    # any further key-val pairs can be added here in request storage context object
+    $req_storage->{context} = { correlation_id => UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4) };
     $req_storage->{logger} = Mojo::WebSocketProxy::RequestLogger->new(req_storage => $req_storage);
     # We still want to run any hooks even for invalid requests.
     if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
