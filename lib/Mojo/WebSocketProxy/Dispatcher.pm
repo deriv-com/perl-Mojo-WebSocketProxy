@@ -18,6 +18,7 @@ use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
+use UUID::Tiny;
 
 ## VERSION
 around 'send' => sub {
@@ -51,7 +52,6 @@ sub open_connection {
 
     my $log = $c->app->log;
     $log->debug("accepting a websocket connection from " . $c->tx->remote_address);
-
     # Enable permessage-deflate
     $c->tx->with_compression;
 
@@ -123,6 +123,8 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
+    $req_storage->{correlation_id} = UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4);
+    $req_storage->{logger} = Mojo::WebSocketProxy::RequestLogger->new(req_storage => $req_storage);
     # We still want to run any hooks even for invalid requests.
     if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
         $c->send({json => $err}, $req_storage);
