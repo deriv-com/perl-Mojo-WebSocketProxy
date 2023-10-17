@@ -4,6 +4,9 @@ class Mojo::WebSocketProxy::RequestLogger;
 
 use strict;
 use warnings;
+use Log::Any::Adapter 'DERIV',
+    log_level => 'info',
+    stderr    => 'json';
 use Log::Any qw($log);
 
 field $req_storage: param;
@@ -19,30 +22,30 @@ method clear_context {
 }
 
 # Method to log messages with various log levels
-method log_message($level, $message) {
-    $log->adapter->set_context($req_storage->{context});
-    $log->$level($message);
+method log_message($level, $message, @params) {
+    $log->adapter->set_context($req_storage->{logger_context});
+    $log->$level($message, @params);
     $log->adapter->clear_context;
 }
 
-method infof ($message) {
-    $self->log_message('info', $message);
+method infof($message, @params) {
+    $self->log_message('info', $message, @params);
 }
 
-method tracef ($message) {
-    $self->log_message('trace', $message);
+method tracef($message, @params) {
+    $self->log_message('trace', $message, @params);
 }
 
-method errorf ($message) {
-    $self->log_message('error', $message);
+method errorf($message, @params) {
+    $self->log_message('error', $message, @params);
 }
 
-method warnf ($message) {
-    $self->log_message('warning', $message);
+method warnf($message, @params) {
+    $self->log_message('warning', $message, @params);
 }
 
-method debugf ($message) {
-    $self->log_message('debug', $message);
+method debugf($message, @params) {
+    $self->log_message('debug', $message, @params);
 }
 
 1;

@@ -9,16 +9,17 @@ use Mojo::WebSocketProxy::Config;
 
 use Class::Method::Modifiers;
 
-use JSON::MaybeUTF8 qw(:v1);
+use JSON::MaybeUTF8    qw(:v1);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
-use Scalar::Util qw(blessed);
+use Scalar::Util  qw(blessed);
 use Encode;
 use DataDog::DogStatsd::Helper qw(stats_inc);
 
 use constant TIMEOUT => $ENV{MOJO_WEBSOCKETPROXY_TIMEOUT} || 15;
 use UUID::Tiny;
+use Mojo::WebSocketProxy::RequestLogger;
 
 ## VERSION
 around 'send' => sub {
@@ -124,8 +125,8 @@ sub on_message {
     $req_storage->{args} = $args;
 
     # any further key-val pairs can be added here in request storage context object
-    $req_storage->{context} = { correlation_id => UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4) };
-    $req_storage->{logger} = Mojo::WebSocketProxy::RequestLogger->new(req_storage => $req_storage);
+    $req_storage->{logger_context} = {correlation_id => UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4)};
+    $req_storage->{logger}         = Mojo::WebSocketProxy::RequestLogger->new(req_storage => $req_storage);
     # We still want to run any hooks even for invalid requests.
     if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
         $c->send({json => $err}, $req_storage);
