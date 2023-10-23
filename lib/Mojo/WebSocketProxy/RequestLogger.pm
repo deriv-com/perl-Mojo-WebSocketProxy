@@ -23,6 +23,46 @@ method log_message($level, $message, @params) {
     }
 }
 
+method infof($message, @params) {
+    $self->log_message('infof', $message, @params);
+}
+
+method tracef($message, @params) {
+    $self->log_message('tracef', $message, @params);
+}
+
+method errorf($message, @params) {
+    $self->log_message('errorf', $message, @params);
+}
+
+method warnf($message, @params) {
+    $self->log_message('warningf', $message, @params);
+}
+
+method debugf($message, @params) {
+    $self->log_message('debugf', $message, @params);
+}
+
+method info($message) {
+    $self->log_message('info', $message);
+}
+
+method trace($message) {
+    $self->log_message('trace', $message);
+}
+
+method error($message) {
+    $self->log_message('error', $message);
+}
+
+method warn($message) {
+    $self->log_message('warning', $message);
+}
+
+method debug($message) {
+    $self->log_message('debug', $message);
+}
+
 method get_context(){
     return $context;
 }
