@@ -53,8 +53,6 @@ method critf($message, @params) {
 }
 
 method info($message) {
-    use Data::Dumper;
-    print 'here to print message';
     $default_handler->('info', $message, $context);
 }
 
