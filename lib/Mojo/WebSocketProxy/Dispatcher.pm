@@ -123,7 +123,7 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
-    $req_storage->{logger}         = Mojo::WebSocketProxy::RequestLogger->new(context => {});
+    $req_storage->{logger}         = Mojo::WebSocketProxy::RequestLogger->new;
     # We still want to run any hooks even for invalid requests.
     if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
         $c->send({json => $err}, $req_storage);
