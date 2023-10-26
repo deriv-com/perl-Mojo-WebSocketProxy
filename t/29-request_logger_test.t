@@ -1,9 +1,7 @@
 use Test::More;
 use Mojo::WebSocketProxy::RequestLogger;
 
-my $context = {'correlation_id' => '1234'};
-my $logger = Mojo::WebSocketProxy::RequestLogger->new(context => $context);
-
+my $logger = Mojo::WebSocketProxy::RequestLogger->new();
 
 subtest 'Test log_message method' => sub {
     $logger->info('This is a info message');

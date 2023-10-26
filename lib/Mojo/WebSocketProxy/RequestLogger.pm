@@ -9,7 +9,7 @@ use UUID::Tiny;
 
 field $context;
 
-our $default_handler = sub {
+our $log_handler = sub {
     my ($level, $message, $context, @params) = @_;
 
     if(scalar @params) {
@@ -21,7 +21,7 @@ our $default_handler = sub {
 
 sub set_handler {
     my ($self, $custom_handler) = @_;
-    $default_handler = $custom_handler;
+    $log_handler = $custom_handler;
 } 
 
 BUILD{
@@ -29,51 +29,51 @@ BUILD{
 }
 
 method infof($message, @params) {
-    $default_handler->('infof', $message, $context, @params);
+    $log_handler->('infof', $message, $context, @params);
 }
 
 method tracef($message, @params) {
-    $default_handler->('tracef', $message, $context, @params);
+    $log_handler->('tracef', $message, $context, @params);
 }
 
 method errorf($message, @params) {
-    $default_handler->('errorf', $message, $context, @params);
+    $log_handler->('errorf', $message, $context, @params);
 }
 
 method warnf($message, @params) {
-    $default_handler->('warningf', $message, $context, @params);
+    $log_handler->('warningf', $message, $context, @params);
 }
 
 method debugf($message, @params) {
-    $default_handler->('debugf', $message, $context, @params);
+    $log_handler->('debugf', $message, $context, @params);
 }
 
 method critf($message, @params) {
-    $default_handler->('critf', $message, $context, @params);
+    $log_handler->('critf', $message, $context, @params);
 }
 
 method info($message) {
-    $default_handler->('info', $message, $context);
+    $log_handler->('info', $message, $context);
 }
 
 method trace($message) {
-    $default_handler->('trace', $message , $context);
+    $log_handler->('trace', $message , $context);
 }
 
 method error($message) {
-    $default_handler->('error', $message, $context);
+    $log_handler->('error', $message, $context);
 }
 
 method warn($message) {
-    $default_handler->('warning', $message, $context);
+    $log_handler->('warning', $message, $context);
 }
 
 method debug($message) {
-    $default_handler->('debug', $message, $context);
+    $log_handler->('debug', $message, $context);
 }
 
 method crit($message) {
-    $default_handler->('crit', $message, $context);
+    $log_handler->('crit', $message, $context);
 }
 
 method get_context(){
