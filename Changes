@@ -1,8 +1,11 @@
 Revision history for Perl module Mojo::WebSocketProxy
 {{$NEXT}}
-    - Move Mojo::WebSocketProxy::Backend::JobAsync and Mojo::WebSocketProxy::Backend::ConsumerGroups out
 
-{{$NEXT}}
+0.15      2023-10-27 14:29:50+08:00 Asia/Shanghai
+    -Logger Wrapper added to Proxy for logging context with request 
+
+0.14
+    - Move Mojo::WebSocketProxy::Backend::JobAsync and Mojo::WebSocketProxy::Backend::ConsumerGroups out
     - Add support for separating messages to different channels with
       different timeout values for each channel.
     - Increase minimum Perl version from 5.014 to 5.024 for the module.

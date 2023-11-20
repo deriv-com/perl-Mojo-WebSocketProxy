@@ -85,8 +85,8 @@ $t->websocket_ok('/api' => {});
 $t   = $t->send_ok({json => {some_action => 1}})->message_ok;
 $res = decode_json_utf8($t->message->[1]);
 
-is $url, 'http://rpc-host.com:8080/some_action', 'It should use url + method';
-is $call_params->{method}, 'some_action', 'It should use method from actions';
+is $url,                   'http://rpc-host.com:8080/some_action', 'It should use url + method';
+is $call_params->{method}, 'some_action',                          'It should use method from actions';
 ok $call_params->{id}, 'It should generate call id';
 is_deeply $call_params->{params}->{args}, {some_action => 1}, 'It should forward message params';
 is_deeply $res,
