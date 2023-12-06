@@ -51,8 +51,8 @@ sub open_connection {
     my ($c) = @_;
 
     my $log            = $c->app->log;
-    my $remote_address = $c->tx->remote_address // 'undefined remote address';
-    $log->debugf('accepting a websocket connection from %s', $remote_address);
+    my $remote_address = $c->tx->remote_address // 'undef';
+    $log->debugf('accepting a websocket connection from ' . $remote_address);
     # Enable permessage-deflate
     $c->tx->with_compression;
 
