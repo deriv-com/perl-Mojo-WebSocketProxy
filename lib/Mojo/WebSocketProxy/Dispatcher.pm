@@ -10,6 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeUTF8    qw(:v1);
+use Log::Any           qw($log);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
@@ -50,9 +51,8 @@ sub ok {
 sub open_connection {
     my ($c) = @_;
 
-    my $log            = $c->app->log;
     my $remote_address = $c->tx->remote_address // 'undef';
-    $log->debug('accepting a websocket connection from ' . $remote_address);
+    $log->debugf('accepting a websocket connection from %s', $remote_address);
     # Enable permessage-deflate
     $c->tx->with_compression;
 
