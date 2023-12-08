@@ -2,7 +2,7 @@ Revision history for Perl module Mojo::WebSocketProxy
 
 {{$NEXT}}
 
-    Dispatcher changes:
+    Mojo::WebSocketProxy::Dispatcher changes:
     - Use Log::Any instead of Mojo::Log in Dispatcher;
     - Avoid string interpolation to solve warning due to the uninitialised value of $c->tx->remote_address;
     - Add fallback value for cases when remote_address can't be resolved;
