@@ -12,7 +12,7 @@ subtest 'Test log_message method' => sub {
     $logger->infof('This is a info message %s', ['abc', '221']);
     $logger->warnf('%s This is a warning message ', {with => 'params'});
     $logger->tracef('This is a trace %s message', "with params");
-    $logger->errorf('This is an error %s message',"with params");
+    $logger->errorf('This is an error %s message', "with params");
     $logger->debugf('This is debug message with %s', 'params');
     pass('All log levels tested');
 };

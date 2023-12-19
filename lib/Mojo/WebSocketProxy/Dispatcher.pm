@@ -10,6 +10,7 @@ use Mojo::WebSocketProxy::Config;
 use Class::Method::Modifiers;
 
 use JSON::MaybeUTF8    qw(:v1);
+use Log::Any           qw($log);
 use Unicode::Normalize ();
 use Future::Mojo 0.004;    # ->new_timeout
 use Future::Utils qw(fmap);
@@ -50,8 +51,8 @@ sub ok {
 sub open_connection {
     my ($c) = @_;
 
-    my $log = $c->app->log;
-    $log->debug("accepting a websocket connection from " . $c->tx->remote_address);
+    my $remote_address = $c->tx->remote_address // 'undef';
+    $log->debugf('accepting a websocket connection from %s', $remote_address);
     # Enable permessage-deflate
     $c->tx->with_compression;
 
@@ -123,7 +124,7 @@ sub on_message {
     my $req_storage = {};
     $req_storage->{args} = $args;
 
-    $req_storage->{logger}         = Mojo::WebSocketProxy::RequestLogger->new;
+    $req_storage->{logger} = Mojo::WebSocketProxy::RequestLogger->new;
     # We still want to run any hooks even for invalid requests.
     if (my $err = Mojo::WebSocketProxy::Parser::parse_req($c, $req_storage)) {
         $c->send({json => $err}, $req_storage);

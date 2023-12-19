@@ -61,13 +61,12 @@ Create a new `Mojo::WebSocketProxy::RequestLogger` object.
 
 =cut
 
-
 field $context;
 
 our $log_handler = sub {
     my ($level, $message, $context, @params) = @_;
 
-    if(scalar @params) {
+    if (scalar @params) {
         return $log->$level($message, @params);
     }
 
@@ -83,10 +82,10 @@ set the handler for message logging
 sub set_handler {
     my ($self, $custom_handler) = @_;
     $log_handler = $custom_handler;
-} 
+}
 
-BUILD{
-    $context->{correlation_id} =  UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4);
+BUILD {
+    $context->{correlation_id} = UUID::Tiny::create_UUID_as_string(UUID::Tiny::UUID_V4);
 }
 
 =head2 infof
@@ -166,7 +165,7 @@ trace message logging
 =cut
 
 method trace($message) {
-    $log_handler->('trace', $message , $context);
+    $log_handler->('trace', $message, $context);
 }
 
 =head2 error
@@ -215,7 +214,7 @@ get the value of context
 
 =cut
 
-method get_context(){
+method get_context() {
     return $context;
 }
 
@@ -235,7 +234,7 @@ remove key from context
 
 =cut
 
-method remove_context_key($key){
+method remove_context_key($key) {
     delete $context->{$key};
 }
 
