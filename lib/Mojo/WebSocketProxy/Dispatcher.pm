@@ -130,18 +130,24 @@ sub on_message {
         $c->send({json => $err}, $req_storage);
         return $c->_run_hooks($config->{after_dispatch} || [])->retain;
     }
-
-    my $action = $c->dispatch($args) or do {
-        my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
-        $c->send({json => $err}, $req_storage);
-        return $c->_run_hooks($config->{after_dispatch} || [])->retain;
-    };
-
-    @{$req_storage}{keys %$action} = (values %$action);
-    $req_storage->{method} = $req_storage->{name};
-
+    
     # main processing pipeline
-    my $f = $c->before_forward($req_storage)->transform(
+    my $f = $c->dispatch($args)->then(sub {
+        my ($action) = @_; 
+        unless ($action) {
+            my $err = $c->wsp_error('error', UnrecognisedRequest => 'Unrecognised request');
+            $c->send({json => $err}, $req_storage);
+            return $c->_run_hooks($config->{after_dispatch} || [])->then(sub {
+                return Future::Mojo->fail('UNRECOGNISED_REQUEST');
+            });
+        }
+
+        @{$req_storage}{keys %$action} = (values %$action);
+        $req_storage->{method} = $req_storage->{name};
+        return Future::Mojo->done;
+    })->then(sub {
+        return $c->before_forward($req_storage);
+    })->transform(
         done => sub {
             # Note that we completely ignore the return value of ->before_forward here.
             return $req_storage->{instead_of_forward}->($c, $req_storage) if $req_storage->{instead_of_forward};
@@ -172,6 +178,11 @@ sub on_message {
         }
     )->on_fail(
         sub {
+            my ($err) = @_;
+
+            # we don't want to flood logs if clients sent incorrect requests.
+            return if $err and $err eq 'UNRECOGNISED_REQUEST';
+
             $c->app->log->error("An error occurred handling on_message. Error @_");
         })->retain;
 }
@@ -223,12 +234,16 @@ sub dispatch {
     my $log = $c->app->log;
     $log->debug("websocket got json " . $c->dumper($args));
 
+    if ($c->wsp_config->{dispatcher}) {
+        return Future::Mojo->wrap($c->wsp_config->{dispatcher}->dipatch($actions));
+    }
+
     my ($action) =
         sort { $a->{order} <=> $b->{order} }
         grep { defined }
         map  { $c->wsp_config->{actions}->{$_} } keys %$args;
 
-    return $action;
+    return Future::Mojo->done($action);
 }
 
 sub forward {
